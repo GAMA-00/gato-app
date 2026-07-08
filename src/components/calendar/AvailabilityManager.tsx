@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Loader2, Settings, Calendar } from 'lucide-react';
+import { Save, Loader2, AlertTriangle } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProviderListing } from '@/hooks/useProviderListing';
 import { useAvailabilitySync } from '@/hooks/useAvailabilitySync';
 import { AvailabilityConfigureTab } from './AvailabilityConfigureTab';
-import { AvailabilityManageTab } from './AvailabilityManageTab';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatInTimeZone } from 'date-fns-tz';
+
+const TZ = 'America/Costa_Rica';
+
+const DAY_MAP: Record<string, number> = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+  thursday: 4, friday: 5, saturday: 6,
+};
+const DAY_ES: Record<string, string> = {
+  monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
+  thursday: 'Jueves', friday: 'Viernes', saturday: 'Sábado', sunday: 'Domingo',
+};
+
+interface DayWarning {
+  dayKey: string;
+  appointmentCount: number;
+}
 
 export const AvailabilityManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('configurar');
   const { user } = useAuth();
-  const { firstListingId, serviceDuration, isLoading: isLoadingListing } = useProviderListing();
   const {
     availability,
     isLoading,
@@ -24,102 +35,141 @@ export const AvailabilityManager: React.FC = () => {
     removeTimeSlot,
     updateTimeSlot,
     saveAvailability,
-    copyDayToOtherDays
+    copyDayToOtherDays,
   } = useProviderAvailability();
-  
+
   useAvailabilitySync();
+
+  const [warning, setWarning] = useState<DayWarning | null>(null);
+  const [pendingDisable, setPendingDisable] = useState<string | null>(null);
+  const [checkingDay, setCheckingDay] = useState<string | null>(null);
+
+  const handleToggleDay = async (dayKey: string, enabled: boolean) => {
+    if (enabled) {
+      // Activar: sin restricción
+      updateDayAvailability(dayKey, true);
+      return;
+    }
+
+    // Desactivar: verificar si hay citas activas en ese día de la semana
+    setCheckingDay(dayKey);
+    try {
+      const db = supabase as any;
+      const dow = DAY_MAP[dayKey];
+      const today = formatInTimeZone(new Date(), TZ, 'yyyy-MM-dd');
+
+      const { data: appts } = await db
+        .from('appointments')
+        .select('id, start_time')
+        .eq('provider_id', user?.id)
+        .in('status', ['pending', 'confirmed'])
+        .gte('start_time', `${today}T00:00:00-06:00`);
+
+      const matching = (appts ?? []).filter((a: any) => {
+        const localDate = new Date(a.start_time);
+        // getDay en UTC-6
+        const dowLocal = new Date(localDate.getTime() - 6 * 3600_000).getUTCDay();
+        return dowLocal === dow;
+      });
+
+      if (matching.length > 0) {
+        setWarning({ dayKey, appointmentCount: matching.length });
+        setPendingDisable(dayKey);
+      } else {
+        updateDayAvailability(dayKey, false);
+      }
+    } finally {
+      setCheckingDay(null);
+    }
+  };
+
+  const confirmDisable = () => {
+    if (pendingDisable) {
+      updateDayAvailability(pendingDisable, false);
+    }
+    setWarning(null);
+    setPendingDisable(null);
+  };
+
+  const cancelDisable = () => {
+    setWarning(null);
+    setPendingDisable(null);
+  };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-        <p className="font-medium text-foreground">Cargando disponibilidad...</p>
-        <p className="text-sm text-muted-foreground">Recuperando tu configuración guardada</p>
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[80vh]">
-      {/* Tabs and Save Button */}
-      <div className="flex-shrink-0 pb-4 space-y-4">
-        {/* Save Button at top */}
-        <Button 
+    <>
+      {/* Dialog de advertencia */}
+      {warning && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 rounded-full bg-amber-100 p-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">Citas activas detectadas</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  El día <strong>{DAY_ES[warning.dayKey]}</strong> tiene{' '}
+                  <strong>{warning.appointmentCount} cita{warning.appointmentCount > 1 ? 's' : ''}</strong>{' '}
+                  activa{warning.appointmentCount > 1 ? 's' : ''}. No se recomienda desactivar este día.
+                </p>
+                <p className="text-xs text-destructive mt-2 font-medium">
+                  Si continúas, estas citas deberán cancelarse manualmente.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={cancelDisable}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={confirmDisable}
+              >
+                Desactivar igual
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AvailabilityConfigureTab
+        availability={availability}
+        updateDayAvailability={handleToggleDay}
+        checkingDay={checkingDay}
+        addTimeSlot={addTimeSlot}
+        removeTimeSlot={removeTimeSlot}
+        updateTimeSlot={updateTimeSlot}
+        copyDayToOtherDays={copyDayToOtherDays}
+      />
+
+      {/* Guardar */}
+      <div className="sticky bottom-0 bg-background pt-3 pb-2 mt-2 border-t -mx-5 px-5">
+        <Button
           onClick={saveAvailability}
           disabled={isSaving}
-          className="w-full h-11 text-base font-medium"
+          className="w-full h-12 text-base font-medium"
         >
           {isSaving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Guardando...
-            </>
+            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Guardando...</>
           ) : (
-            <>
-              <Save className="h-5 w-5 mr-2" />
-              Guardar
-            </>
+            <><Save className="h-4 w-4 mr-2" />Guardar cambios</>
           )}
         </Button>
-
-        {/* Pill-shaped Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-full h-12">
-            <TabsTrigger 
-              value="configurar" 
-              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 flex items-center justify-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Configurar
-            </TabsTrigger>
-            <TabsTrigger 
-              value="administrar" 
-              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 flex items-center justify-center gap-2"
-            >
-              <Calendar className="h-4 w-4" />
-              Administrar
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
-
-      {/* Scrollable Content */}
-      <ScrollArea className="flex-1 -mx-1 px-1">
-        <div className={activeTab === 'configurar' ? 'block' : 'hidden'}>
-          <AvailabilityConfigureTab
-            availability={availability}
-            updateDayAvailability={updateDayAvailability}
-            addTimeSlot={addTimeSlot}
-            removeTimeSlot={removeTimeSlot}
-            updateTimeSlot={updateTimeSlot}
-            copyDayToOtherDays={copyDayToOtherDays}
-          />
-        </div>
-
-        <div className={activeTab === 'administrar' ? 'block' : 'hidden'}>
-          {firstListingId && user?.id ? (
-            <AvailabilityManageTab
-              providerId={user.id}
-              listingId={firstListingId}
-              serviceDuration={serviceDuration}
-            />
-          ) : (
-            <Card className="shadow-sm border-amber-200 bg-amber-50">
-              <CardContent className="pt-6">
-                <div className="text-center py-8">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 text-amber-600" />
-                  <p className="text-amber-800 font-medium">
-                    {isLoadingListing ? 'Cargando configuración...' : 'No hay servicios configurados'}
-                  </p>
-                  <p className="text-amber-700 text-sm mt-2">
-                    Primero debes crear un servicio para poder administrar tus horarios
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+    </>
   );
 };

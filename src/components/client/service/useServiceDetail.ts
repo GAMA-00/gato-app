@@ -92,18 +92,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       });
       
       // Get client residence info if userId provided
+      // v1 schema: no residencias table. Client location comes from canton/address fields.
       let clientResidencia = null;
-      if (userId) {
-        logger.debug("Fetching client residence", { userId });
-        const { data: clientData } = await supabase
-          .from('users')
-          .select('residencia_id, residencias(name, address)')
-          .eq('id', userId)
-          .eq('role', 'client')
-          .maybeSingle();
-          
-        clientResidencia = clientData?.residencias;
-      }
       
       // Process provider data to include hasCertifications and parsed certification files
       let certificationFiles: CertificationFile[] = [];

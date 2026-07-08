@@ -1,21 +1,36 @@
 # 🗺️ Project Map - Gato App
 
-> **Última actualización:** Febrero 2026  
-> **Versión:** 2.0 DOE
+> 🐱 **Pivote v1 en curso.** Ver [CONCEPTO_V1.md](./CONCEPTO_V1.md) para el esquema
+> completo del cambio. Este mapa describe el estado actual + hacia dónde vamos.
 
-## 📋 Descripción General
+## Descripción General
 
-**Gato App** es un marketplace de servicios a domicilio que conecta proveedores con clientes en residencias y condominios de Costa Rica. La plataforma soporta reservas únicas, recurrentes, pagos pre y post-servicio.
+**Gato** es un **SaaS para proveedores de servicio a domicilio independientes de Costa
+Rica** (limpieza, fisioterapia, lavado de carros, belleza, jardinería). Le ordena la
+agenda, automatiza recordatorios por WhatsApp, optimiza rutas por cantón y le da datos
+de su negocio. El cliente reserva solo desde un **booking link público**
+(`gato.app/{slug}`).
+
+> Antes era un marketplace genérico de servicios en residencias/condominios. Ese
+> modelo (residencias) **coexiste** durante la transición, pero el foco nuevo es el
+> proveedor independiente y la geografía por **cantón**.
 
 | Aspecto | Detalle |
 |---------|---------|
-| **Tipo** | Marketplace B2C de servicios a domicilio |
-| **Stack Frontend** | React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui |
+| **Tipo** | SaaS de gestión para proveedores a domicilio (CR) |
+| **Usuario primario** | Proveedor independiente con 10–40 clientes activos |
+| **Stack Frontend** | React + Vite + TypeScript + Tailwind CSS + shadcn/ui (PWA) |
 | **Stack Backend** | Supabase (PostgreSQL + Edge Functions + Auth + Storage) |
-| **Pagos** | OnvoPay (Costa Rica) - Pre-pago, Post-pago, Recurrentes |
-| **Emails** | Resend API |
+| **Mensajería** | WhatsApp Business Cloud API (canal único al cliente) |
+| **Pagos** | OnvoPay (presente, **oculto en v1** — "sin pagos en v1") |
 | **Despliegue** | Lovable Cloud |
 | **Timezone** | America/Mexico_City (UTC-6) |
+
+### Los 4 pilares del v1
+1. **Agenda ordenada** — booking link + slots + buffer + solicitudes.
+2. **Recordatorios automáticos** — WhatsApp 24h/2h antes y recordatorio mensual.
+3. **Rutas eficientes** — recomendación de horarios por cantón + descuento por proximidad.
+4. **Datos del negocio** — clientes nuevos, ganancias, recurrentes, tiempo en traslados.
 
 ---
 
@@ -124,25 +139,22 @@ gato-app/
 
 ## 🔄 Flujos Principales
 
-### 1. Reserva Normal (Pre-pago)
+### 1. Flujo de Reserva (Cliente) — NUEVO: Booking Link público
 
 ```
-Cliente busca servicio → Selecciona proveedor → Elige slot
-    │
-    ▼
-Checkout → onvopay-authorize → 3DS → onvopay-confirm
-    │
-    ▼
-Appointment creada (pending) → Proveedor acepta
-    │
-    ▼
-onvopay-capture → Pago capturado → Servicio ejecutado
-    │
-    ▼
-Completado → Factura generada → Rating
+1. Cliente entra a gato.app/{slug}  → BL-1 perfil del proveedor
+2. Comparte ubicación GPS + detalles → BL-2 (geocoding inverso → cantón)
+3. Elige servicio(s) del catálogo    → BL-3
+4. Elige fecha/hora (slots ⭐ recomendados primero) → BL-4
+5. Deja nombre + WhatsApp            → BL-5
+6. Confirmación + .ics               → BL-6 (sin pago en v1)
+   → Crea solicitud (appointment 'pending') + WhatsApp al cliente
 ```
 
-### 2. Reserva Post-Pago
+> El flujo viejo (`/client/services` → checkout OnvoPay) queda en el código pero
+> **no es el camino v1**. El pago no se expone.
+
+### 2. Flujo de Gestión (Proveedor)
 
 ```
 Cliente reserva (sin pago) → Proveedor acepta
@@ -198,91 +210,25 @@ Slot marcado como is_reserved = true
 
 ## 📊 Tablas Principales (DB)
 
-### Core
-
-| Tabla | Descripción |
-|-------|-------------|
-| `users` | Usuarios (clientes + proveedores) |
-| `listings` | Servicios publicados |
-| `appointments` | Citas/Reservas |
-| `provider_time_slots` | Slots de disponibilidad |
-
-### Pagos
-
-| Tabla | Descripción |
-|-------|-------------|
-| `onvopay_payments` | Registros de pago |
-| `onvopay_subscriptions` | Suscripciones activas |
-| `onvopay_customers` | Clientes sincronizados |
-| `onvopay_webhooks` | Log de webhooks |
-
-### Recurrencia
-
-| Tabla | Descripción |
-|-------|-------------|
+| Tabla | Propósito |
+|-------|-----------|
+| `users` | Usuarios (clientes + proveedores) — 🆕 agrega `canton_base_id`, `slug` |
+| `listings` | Servicios publicados por proveedores |
+| `appointments` | Citas/Reservas — 🆕 agrega `canton_id`, GPS, `guest_*` |
+| `onvopay_payments` | Registros de pagos (oculto en v1) |
 | `recurring_rules` | Reglas de recurrencia |
-| `recurring_instances` | Instancias generadas |
-| `recurring_exceptions` | Excepciones (saltar/reagendar) |
-
-### Ubicaciones
-
-| Tabla | Descripción |
-|-------|-------------|
-| `residencias` | Residencias/Comunidades |
+| `provider_time_slots` | Slots de disponibilidad |
+| `residencias` | Residencias/Comunidades (legacy, coexiste) |
 | `condominiums` | Condominios dentro de residencias |
-| `provider_residencias` | Zonas que cubre proveedor |
-| `listing_residencias` | Zonas por servicio |
+| 🆕 `provincias` | 7 provincias de CR |
+| 🆕 `cantones` | 84 cantones con centroide geográfico |
+| 🆕 `provider_cantones` | Zonas de trabajo del proveedor |
+| 🆕 `provider_settings` | Buffer, descuentos, toggles de recordatorio |
+| 🆕 `whatsapp_messages` | Log de mensajes WhatsApp (in/out) |
+| 🆕 `whatsapp_otp` | Códigos OTP de login |
+| 🆕 `reminder_jobs` | Cola de recordatorios programados |
 
-### Soporte
-
-| Tabla | Descripción |
-|-------|-------------|
-| `service_categories` | Categorías de servicios |
-| `service_types` | Tipos de servicios |
-| `team_members` | Equipo del proveedor |
-| `provider_ratings` | Calificaciones |
-| `invoices` | Facturas |
-| `email_logs` | Log de emails |
-
----
-
-## 🔐 Seguridad
-
-### RLS (Row Level Security)
-
-Todas las tablas tienen RLS habilitado con políticas específicas:
-
-- **Usuarios**: Solo ven su propio perfil
-- **Appointments**: Cliente ve sus reservas, Proveedor ve sus citas
-- **Listings**: Proveedor gestiona sus servicios
-- **Pagos**: Acceso restringido a las partes involucradas
-
-### Archivos Críticos (NO MODIFICAR sin revisión)
-
-```
-⚠️ DO_NOT_CHANGE_BEHAVIOR:
-- src/hooks/useRecurringBooking.ts
-- src/utils/robustBookingSystem.ts
-- src/hooks/useDashboardAppointments.ts
-- src/contexts/AuthContext.tsx
-- supabase/functions/onvopay-*
-```
-
----
-
-## 🎨 Sistema de Diseño
-
-| Token | Uso |
-|-------|-----|
-| `--primary` | Color coral Gato (#de7153) |
-| `--background` | Fondo principal |
-| `--foreground` | Texto principal |
-| `--card` | Fondo de tarjetas |
-| `--muted` | Elementos secundarios |
-| `--destructive` | Acciones destructivas |
-| `--success` | Estados exitosos |
-
-Ver `docs/skills/SKILL_DESIGN_SYSTEM.md` para detalles completos.
+> Detalle completo del modelo en [CONCEPTO_V1.md](./CONCEPTO_V1.md) §5.
 
 ---
 

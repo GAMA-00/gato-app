@@ -235,10 +235,11 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   // Helper function for compact meta display
   const getCompactMeta = () => {
     const recurrence = recurrenceInfo.label;
-    const status = booking.status === 'confirmed' ? 'Confirmada' : 
-                   booking.status === 'pending' ? 'Pendiente' :
+    const status = booking.status === 'confirmed' ? 'Confirmada' :
+                   booking.status === 'pending' ? 'Pendiente de aprobación' :
                    booking.status === 'completed' ? 'Completada' :
-                   booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 
+                   booking.status === 'rejected' ? 'Rechazada' :
+                   booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') :
                    'Otra';
     
     if (isRecurring) {
@@ -361,10 +362,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                   "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
                   booking.status === 'confirmed' && "bg-green-50 text-green-700 border border-green-200",
                   booking.status === 'pending' && "bg-yellow-50 text-yellow-700 border border-yellow-200",
-                  booking.status === 'cancelled' && "bg-gray-50 text-gray-700 border border-gray-200"
+                  booking.status === 'cancelled' && "bg-gray-50 text-gray-700 border border-gray-200",
+                  booking.status === 'rejected' && "bg-red-50 text-red-700 border border-red-200"
                 )}>
                   {booking.status === 'confirmed' ? 'Confirmada' :
-                   booking.status === 'pending' ? 'Pendiente' :
+                   booking.status === 'pending' ? 'Pendiente de aprobación' :
+                   booking.status === 'rejected' ? 'Rechazada' :
                    booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
                 </div>
               </div>
@@ -419,6 +422,15 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </div>
           )}
           
+          {/* Mensaje informativo para rechazadas */}
+          {booking.status === 'rejected' && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mt-1">
+              <p className="text-xs text-red-700">
+                El proveedor rechazó esta solicitud. Podés explorar otros servicios disponibles.
+              </p>
+            </div>
+          )}
+
           {/* Botones de acción */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
             <div className="flex flex-col gap-2 pt-2">

@@ -45,6 +45,7 @@ export interface UnifiedAppointment {
   service_title?: string;
   rescheduled_style?: string;
   reschedule_notes?: string;
+  updated_at?: string;
 }
 
 interface UseUnifiedRecurringAppointmentsOptions {
@@ -310,20 +311,27 @@ export const useUnifiedRecurringAppointments = ({
       console.log(`=== UNIFIED RESULT: ${unifiedAppointments.length} total appointments ===`);
       console.log(`Real: ${realAppointmentsMapped.length}, Virtual: ${virtualAppointments.length}, Deduplicated: ${unifiedAppointments.length}`);
 
-      // 9. Filter out cancelled, rejected, and optionally completed appointments
-      let filteredUnified = unifiedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status));
-      
+      // 9. Filter out cancelled and optionally completed/rejected appointments
+      // Keep recently-rejected (last 24h) when includeCompleted=true so clients can see them
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      let filteredUnified = unifiedAppointments.filter(a => {
+        if (a.status === 'cancelled') return false;
+        if (a.status === 'rejected') {
+          if (!includeCompleted) return false;
+          const updatedAt = (a as any).updated_at ? new Date((a as any).updated_at) : null;
+          return updatedAt ? updatedAt > twentyFourHoursAgo : false;
+        }
+        return true;
+      });
+
       if (!includeCompleted) {
         filteredUnified = filteredUnified.filter(a => a.status !== 'completed');
-        console.log(`Filtered out cancelled/rejected/completed. Final count: ${filteredUnified.length}`);
-      } else {
-        console.log(`Filtered out cancelled/rejected. Final count: ${filteredUnified.length}`);
       }
 
       return filteredUnified;
     },
     enabled: !!userId && !!userRole,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0,
     retry: 2,
   });
 };

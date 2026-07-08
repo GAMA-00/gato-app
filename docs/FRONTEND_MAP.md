@@ -1,8 +1,3 @@
-# 🎨 Frontend Map - Gato App
-
-> **Última actualización:** Febrero 2026  
-> **Versión:** 2.0 DOE
-
 ## Stack Tecnológico
 
 | Tecnología | Versión | Propósito |

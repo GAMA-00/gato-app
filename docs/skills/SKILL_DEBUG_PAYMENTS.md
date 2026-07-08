@@ -1,5 +1,10 @@
 # 🛠️ Skill: Debugging de Pagos OnvoPay
 
+> ⚠️ **Concepto v1:** OnvoPay sigue presente en el backend pero **NO se expone en el
+> flujo v1** ("sin pagos en v1", ver `docs/CONCEPTO_V1.md` §3). El booking link nuevo
+> **no debe** disparar ninguna edge function de pago. Esta skill aplica al código
+> legacy y a cuando se reactiven los pagos (suscripción Gato Pro / cobros).
+
 ## Contexto
 
 Esta skill te ayuda a diagnosticar y resolver problemas con pagos en OnvoPay.

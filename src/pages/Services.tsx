@@ -6,11 +6,12 @@ import { ListingService } from '@/services/listingService';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
-import TeamSection from '@/components/team/TeamSection';
 import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
+import RoutesSection from '@/components/services/RoutesSection';
+import TeamMembersSection from '@/components/services/TeamMembersSection';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -134,12 +135,17 @@ const Services = () => {
           </div>
         )}
 
-        {/* Sección de Equipo - Solo mostrar si hay servicios */}
-        {services && services.length > 0 && (
-          <div className="mt-8 pt-8 border-t border-gray-200">
-            <TeamSection />
-          </div>
-        )}
+        {/* ── Rutas ──────────────────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="mb-4 text-lg font-bold text-foreground">Rutas</h2>
+          <RoutesSection />
+        </div>
+
+        {/* ── Equipo ─────────────────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="mb-4 text-lg font-bold text-foreground">Equipo</h2>
+          <TeamMembersSection />
+        </div>
 
         <ServiceForm
           isOpen={isFormOpen}

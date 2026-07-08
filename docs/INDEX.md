@@ -9,76 +9,43 @@
 
 ---
 
+> 🐱 **Pivote v1.** SaaS para proveedores independientes de Costa Rica
+> (cantones + WhatsApp + booking link + datos).
+>
+> **Handoff dev:** [../README.md](../README.md) (setup) · [../CLAUDE.md](../CLAUDE.md)
+> (contexto/convenciones para IA) · [../TESTING.md](../TESTING.md) (tests).
+> **Fuente de verdad del producto:** [CONCEPTO_V1.md](./CONCEPTO_V1.md).
+
 ## 🗺️ Mapas del Proyecto
 
-| Documento | Descripción | Cuándo Leer |
-|-----------|-------------|-------------|
-| [PROJECT_MAP.md](./PROJECT_MAP.md) | Vista de alto nivel: arquitectura, flujos, roles | **Siempre primero** |
-| [FRONTEND_MAP.md](./FRONTEND_MAP.md) | Componentes, hooks, rutas, patrones React | Trabajo en UI |
-| [BACKEND_MAP.md](./BACKEND_MAP.md) | Edge Functions, DB, pagos, webhooks | Trabajo en backend |
-| [GLOSSARY.md](./GLOSSARY.md) | Términos de negocio y técnicos | Cuando hay dudas |
+| Documento | Descripción |
+|-----------|-------------|
+| [CONCEPTO_V1.md](./CONCEPTO_V1.md) | ⭐ **Esquema maestro del nuevo concepto v1** (leer primero) |
+| [SPEC_PRODUCTO_V1.md](./SPEC_PRODUCTO_V1.md) | Spec de producto canónico (34 pantallas) |
+| [PROJECT_MAP.md](./PROJECT_MAP.md) | Vista de alto nivel del proyecto completo |
+| [FRONTEND_MAP.md](./FRONTEND_MAP.md) | Arquitectura y estructura del frontend |
+| [BACKEND_MAP.md](./BACKEND_MAP.md) | Edge Functions, DB y servicios externos |
+| [GLOSSARY.md](./GLOSSARY.md) | Glosario de términos del proyecto |
 
 ---
 
 ## 🛠️ Skills (Guías Accionables)
 
-### Features y Desarrollo
-
-| Skill | Cuándo Usar | Tiempo Est. |
-|-------|-------------|-------------|
-| [SKILL_NEW_FEATURE.md](./skills/SKILL_NEW_FEATURE.md) | Agregar funcionalidad nueva al frontend | 30-60 min |
-| [SKILL_NEW_EDGE_FUNCTION.md](./skills/SKILL_NEW_EDGE_FUNCTION.md) | Crear nueva Edge Function en Supabase | 20-40 min |
-| [SKILL_DATABASE_MIGRATION.md](./skills/SKILL_DATABASE_MIGRATION.md) | Modificar esquema de base de datos | 15-30 min |
-
-### Diseño y UI/UX
-
-| Skill | Cuándo Usar | Tiempo Est. |
-|-------|-------------|-------------|
-| [SKILL_DESIGN_SYSTEM.md](./skills/SKILL_DESIGN_SYSTEM.md) | **Leer antes de cualquier cambio de UI** | Referencia |
-| [SKILL_UI_PATTERNS.md](./skills/SKILL_UI_PATTERNS.md) | Implementar patrones de UI comunes | Referencia |
-| [SKILL_COMPONENT_STYLING.md](./skills/SKILL_COMPONENT_STYLING.md) | Estilizar componentes correctamente | Referencia |
-| [SKILL_MODIFY_UI.md](./skills/SKILL_MODIFY_UI.md) | Modificar componentes existentes | 10-20 min |
-
-### Debug y Mantenimiento
-
-| Skill | Cuándo Usar | Tiempo Est. |
-|-------|-------------|-------------|
-| [SKILL_DEBUG_PAYMENTS.md](./skills/SKILL_DEBUG_PAYMENTS.md) | Diagnosticar problemas de pago OnvoPay | Variable |
-| [SKILL_RECURRING_APPOINTMENTS.md](./skills/SKILL_RECURRING_APPOINTMENTS.md) | Trabajar con citas recurrentes | 20-40 min |
+| Skill | Cuándo Usar |
+|-------|-------------|
+| [SKILL_NEW_FEATURE.md](./skills/SKILL_NEW_FEATURE.md) | Agregar funcionalidad nueva al frontend |
+| [SKILL_NEW_EDGE_FUNCTION.md](./skills/SKILL_NEW_EDGE_FUNCTION.md) | Crear nueva Edge Function en Supabase |
+| [SKILL_DATABASE_MIGRATION.md](./skills/SKILL_DATABASE_MIGRATION.md) | Modificar esquema de base de datos |
+| [SKILL_WHATSAPP_MESSAGING.md](./skills/SKILL_WHATSAPP_MESSAGING.md) | 🆕 Enviar OTP / notificaciones / recordatorios por WhatsApp |
+| [SKILL_CANTONES_GEO.md](./skills/SKILL_CANTONES_GEO.md) | 🆕 Trabajar con provincias/cantones de CR y distancias |
+| [SKILL_PROXIMITY_SLOTS.md](./skills/SKILL_PROXIMITY_SLOTS.md) | 🆕 Recomendar slots por proximidad y descuentos |
+| [SKILL_DEBUG_PAYMENTS.md](./skills/SKILL_DEBUG_PAYMENTS.md) | Diagnosticar problemas de pago (OnvoPay — oculto en v1) |
+| [SKILL_RECURRING_APPOINTMENTS.md](./skills/SKILL_RECURRING_APPOINTMENTS.md) | Trabajar con citas recurrentes |
+| [SKILL_MODIFY_UI.md](./skills/SKILL_MODIFY_UI.md) | Modificar componentes de UI |
 
 ---
 
 ## 📁 Estructura de Documentación
-
-```
-docs/
-├── INDEX.md                          # ← Este archivo
-├── PROJECT_MAP.md                    # Mapa general del proyecto
-├── FRONTEND_MAP.md                   # Arquitectura frontend
-├── BACKEND_MAP.md                    # Edge Functions y DB
-├── GLOSSARY.md                       # Glosario de términos
-│
-├── skills/                           # Guías accionables
-│   │
-│   │   # Desarrollo
-│   ├── SKILL_NEW_FEATURE.md          # Crear feature nueva
-│   ├── SKILL_NEW_EDGE_FUNCTION.md    # Crear Edge Function
-│   ├── SKILL_DATABASE_MIGRATION.md   # Migraciones SQL
-│   │
-│   │   # Diseño/UI
-│   ├── SKILL_DESIGN_SYSTEM.md        # Sistema de diseño ★
-│   ├── SKILL_UI_PATTERNS.md          # Patrones de UI ★
-│   ├── SKILL_COMPONENT_STYLING.md    # Styling de componentes ★
-│   ├── SKILL_MODIFY_UI.md            # Modificar UI existente
-│   │
-│   │   # Debug/Mantenimiento
-│   ├── SKILL_DEBUG_PAYMENTS.md       # Debug de pagos
-│   └── SKILL_RECURRING_APPOINTMENTS.md # Citas recurrentes
-│
-└── scripts/                          # Scripts SQL de utilidad
-    ├── fix-stuck-payment.sql
-    └── fix-stuck-post-payment-payments.sql
-```
 
 ---
 

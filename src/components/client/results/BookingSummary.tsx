@@ -56,7 +56,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
                 <h3 className="font-medium">
                   {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                 </h3>
-                <span className="font-semibold">${formatCurrency(variantTotal)}</span>
+                <span className="font-semibold">{formatCurrency(variantTotal)}</span>
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <div className="flex items-center">
@@ -68,13 +68,13 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
                 </div>
                 {variant.quantity > 1 && (
                   <span className="text-sm">
-                    ${formatCurrency(Number(variant.price))} c/u
+                    {formatCurrency(Number(variant.price))} c/u
                   </span>
                 )}
               </div>
               {variant.personQuantity && variant.personQuantity > 1 && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Precio base: ${formatCurrency(basePrice)} + Personas extra: ${formatCurrency(additionalPersonPrice)}
+                  Precio base: {formatCurrency(basePrice)} + Personas extra: {formatCurrency(additionalPersonPrice)}
                 </div>
               )}
             </div>
@@ -85,7 +85,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
         
         <div className="flex justify-between items-center mb-1 font-bold">
           <span className="text-lg">Total ({totalServices} servicio{totalServices !== 1 ? 's' : ''})</span>
-          <span className="text-lg">${formatCurrency(totalPrice)}</span>
+          <span className="text-lg">{formatCurrency(totalPrice)}</span>
         </div>
         <div className="flex items-center text-muted-foreground">
           <Clock size={16} className="mr-1" />

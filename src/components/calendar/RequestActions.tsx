@@ -6,7 +6,7 @@ import { logger } from '@/utils/logger';
 
 interface RequestActionsProps {
   request: any;
-  onAccept: (request: any) => void;
+  onAccept: (request?: any) => void;
   onDecline: (request: any) => void;
   isLoading?: boolean;
 }

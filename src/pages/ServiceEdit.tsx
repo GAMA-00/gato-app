@@ -1,245 +1,307 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '@/components/layout/Navbar';
-import PageContainer from '@/components/layout/PageContainer';
-import ServiceForm from '@/components/services/ServiceForm';
-import { useServiceMutations } from '@/hooks/useServiceMutations';
-import { Service } from '@/lib/types';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
-import LoadingScreen from '@/components/common/LoadingScreen';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { ArrowLeft, Upload, X, Loader2, BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { uploadGalleryImages } from '@/utils/uploadService';
+import Navbar from '@/components/layout/Navbar';
 
-const ServiceEdit = () => {
-  const navigate = useNavigate();
+const db = supabase as any;
+
+const NOTICE_OPTIONS = [
+  { v: 0, l: "Sin antelación mínima" },
+  { v: 1, l: "1 hora" },
+  { v: 2, l: "2 horas" },
+  { v: 4, l: "4 horas" },
+  { v: 12, l: "12 horas" },
+  { v: 24, l: "1 día" },
+  { v: 48, l: "2 días" },
+  { v: 72, l: "3 días" },
+];
+
+const ServiceEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [isFormOpen, setIsFormOpen] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serviceData, setServiceData] = useState<Service | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { updateListingMutation } = useServiceMutations();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
 
-  // Cargar datos del servicio
+  // Form state
+  const [title, setTitle] = useState('');
+  const [serviceTypeId, setServiceTypeId] = useState('');
+  const [description, setDescription] = useState('');
+  const [requirements, setRequirements] = useState('');
+  const [minNoticeHours, setMinNoticeHours] = useState(0);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [providerId, setProviderId] = useState('');
+
+  // Load service types grouped by category
+  const { data: serviceTypes = [] } = useQuery({
+    queryKey: ['service-types'],
+    queryFn: async () =>
+      (await db.from('service_types').select('id, name, service_categories(id, name, label)').order('name')).data ?? [],
+  });
+
+  // Load listing data
   useEffect(() => {
-    const loadServiceData = async () => {
-      if (!id) {
-        toast.error('ID de servicio no válido');
+    if (!id) return;
+    const load = async () => {
+      const { data, error } = await db
+        .from('listings')
+        .select('*, users!listings_provider_id_fkey(name, about_me)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        toast.error('No se pudo cargar el anuncio');
         navigate('/services');
         return;
       }
-
-      try {
-        // Obtener el listing con todos los campos necesarios
-        const { data: listingData, error: listingError } = await supabase
-          .from('listings')
-          .select(`
-            *,
-            service_types!inner(
-              id,
-              name,
-              service_categories!inner(
-                id,
-                name,
-                label
-              )
-            )
-          `)
-          .eq('id', id)
-          .single();
-
-        if (listingError) {
-          console.error('Error loading listing:', listingError);
-          toast.error('Error al cargar el servicio');
-          navigate('/services');
-          return;
-        }
-
-        // Obtener los datos del perfil del proveedor por separado
-        const { data: providerData, error: providerError } = await supabase
-          .from('users')
-          .select('about_me, experience_years, has_certifications, certification_files')
-          .eq('id', listingData.provider_id)
-          .single();
-
-        if (providerError) {
-          console.error('Error loading provider profile:', providerError);
-        }
-
-        // Obtener las residencias asociadas al listing
-        const { data: residenciasData, error: residenciasError } = await supabase
-          .from('listing_residencias')
-          .select('residencia_id')
-          .eq('listing_id', id);
-
-        if (residenciasError) {
-          console.error('Error loading residencias:', residenciasError);
-        }
-
-        const residenciaIds = residenciasData?.map(r => r.residencia_id) || [];
-
-        // Transformar datos para el formulario - usar standard_duration como fuente de verdad
-        const transformedData: Service = {
-          id: listingData.id,
-          name: listingData.title,
-          description: listingData.description,
-          price: listingData.base_price,
-          duration: listingData.standard_duration, // Usar standard_duration en lugar de duration
-          subcategoryId: listingData.service_type_id,
-          category: listingData.service_types.service_categories.name,
-          isPostPayment: listingData.is_post_payment,
-          
-          // Parsear service_variants como array de objetos
-          serviceVariants: Array.isArray(listingData.service_variants) 
-            ? listingData.service_variants as any[]
-            : (typeof listingData.service_variants === 'string' && listingData.service_variants.trim() !== '')
-              ? JSON.parse(listingData.service_variants)
-              : [{ 
-                  id: 'default-variant', 
-                  name: listingData.title || 'Servicio básico', 
-                  price: listingData.base_price, 
-                  duration: listingData.standard_duration 
-                }],
-          
-          // Parsear gallery_images como array de strings
-          galleryImages: Array.isArray(listingData.gallery_images) 
-            ? listingData.gallery_images as string[]
-            : (typeof listingData.gallery_images === 'string' && listingData.gallery_images.trim() !== '')
-              ? JSON.parse(listingData.gallery_images)
-              : [],
-          
-          // Parsear custom_variable_groups como array de objetos
-          customVariableGroups: Array.isArray(listingData.custom_variable_groups) 
-            ? listingData.custom_variable_groups as any[]
-            : (typeof listingData.custom_variable_groups === 'string' && listingData.custom_variable_groups.trim() !== '')
-              ? JSON.parse(listingData.custom_variable_groups)
-              : [],
-          
-          useCustomVariables: listingData.use_custom_variables || false,
-          
-          // Parsear availability como objeto
-          availability: listingData.availability 
-            ? (typeof listingData.availability === 'string' 
-                ? JSON.parse(listingData.availability) 
-                : listingData.availability)
-            : {
-                monday: { enabled: false, timeSlots: [] },
-                tuesday: { enabled: false, timeSlots: [] },
-                wednesday: { enabled: false, timeSlots: [] },
-                thursday: { enabled: false, timeSlots: [] },
-                friday: { enabled: false, timeSlots: [] },
-                saturday: { enabled: false, timeSlots: [] },
-                sunday: { enabled: false, timeSlots: [] }
-              },
-          
-          // Parsear slot_preferences como objeto
-          slotPreferences: listingData.slot_preferences 
-            ? (typeof listingData.slot_preferences === 'string' 
-                ? JSON.parse(listingData.slot_preferences) 
-                : listingData.slot_preferences)
-            : {},
-          
-          providerId: listingData.provider_id,
-          providerName: '',
-          residenciaIds: residenciaIds, // Usar los IDs obtenidos de la consulta
-          createdAt: new Date(listingData.created_at),
-          
-          // Campos del perfil profesional
-          aboutMe: providerData?.about_me || '',
-          experienceYears: providerData?.experience_years || 0,
-          hasCertifications: providerData?.has_certifications || false,
-          certificationFiles: Array.isArray(providerData?.certification_files) 
-            ? providerData.certification_files 
-            : (providerData?.certification_files ? [providerData.certification_files] : []),
-        };
-
-        logger.debug('Service data loaded', { 
-          rawData: { availability: listingData.availability, standard_duration: listingData.standard_duration },
-          processedData: transformedData 
-        });
-
-        setServiceData(transformedData);
-      } catch (error) {
-        console.error('Error loading service:', error);
-        toast.error('Error al cargar el servicio');
-        navigate('/services');
-      } finally {
-        setIsLoading(false);
-      }
+      // El título del anuncio es el nombre del proveedor/negocio, no el nombre del servicio
+      setTitle(data.users?.name ?? data.title ?? '');
+      setServiceTypeId(data.service_type_id ?? '');
+      setDescription(data.users?.about_me ?? data.description ?? '');
+      setProviderId(data.provider_id);
+      const prefs = data.slot_preferences ?? {};
+      setRequirements(prefs.serviceRequirements ?? '');
+      setMinNoticeHours(prefs.minNoticeHours ?? 0);
+      setExistingImages(Array.isArray(data.gallery_images) ? data.gallery_images.filter(Boolean) : []);
     };
-
-    loadServiceData();
+    load();
   }, [id, navigate]);
 
-  const handleSubmit = (updatedServiceData: Partial<Service>) => {
-    logger.info('Updating service', { serviceId: id, updatedServiceData });
-    
-    setIsSubmitting(true);
-    
-    updateListingMutation.mutate({ 
-      id: id!, 
-      ...updatedServiceData 
-    }, {
-      onSuccess: (data) => {
-        logger.info('Service update successful', { data });
-        setIsSubmitting(false);
-        setIsFormOpen(false);
-        toast.success('Anuncio actualizado exitosamente');
-        navigate('/services');
-      },
-      onError: (error) => {
-        console.error('=== SERVICEEDIT: Mutation failed ===');
-        console.error('Error details:', error);
-        setIsSubmitting(false);
-        toast.error('Error al actualizar el anuncio');
+  const addFiles = (files: File[]) => {
+    setNewFiles((prev) => [...prev, ...files]);
+    setNewPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+  };
+  const removeNewFile = (i: number) => {
+    URL.revokeObjectURL(newPreviews[i]);
+    setNewFiles((prev) => prev.filter((_, idx) => idx !== i));
+    setNewPreviews((prev) => prev.filter((_, idx) => idx !== i));
+  };
+  const removeExistingImage = (i: number) => setExistingImages((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleSave = async () => {
+    if (!title.trim()) { toast.error('El nombre es requerido'); return; }
+    if (!serviceTypeId) { toast.error('Seleccioná el tipo de servicio'); return; }
+    if (!description.trim()) { toast.error('La descripción es requerida'); return; }
+    if (!id || !providerId) return;
+
+    setSaving(true);
+    try {
+      // Upload new gallery images
+      let uploadedUrls: string[] = [];
+      if (newFiles.length > 0) {
+        uploadedUrls = await uploadGalleryImages(newFiles, providerId);
       }
-    });
+      const allImages = [...existingImages, ...uploadedUrls];
+
+      // Update listing (title = nombre del negocio)
+      const { error: listingErr } = await db.from('listings').update({
+        service_type_id: serviceTypeId,
+        description: description.trim(),
+        gallery_images: allImages.length > 0 ? allImages : null,
+        slot_preferences: {
+          serviceRequirements: requirements.trim() || null,
+          minNoticeHours,
+        },
+      }).eq('id', id);
+      if (listingErr) throw listingErr;
+
+      // El nombre y descripción se guardan en el perfil del proveedor
+      const { error: userErr } = await db.from('users').update({
+        name: title.trim(),
+        about_me: description.trim(),
+      }).eq('id', providerId);
+      if (userErr) throw userErr;
+
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      toast.success('Anuncio actualizado');
+      navigate('/services');
+    } catch (e: any) {
+      toast.error('Error al guardar: ' + (e.message ?? 'intentá de nuevo'));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleClose = () => {
-    navigate('/services');
-  };
-
-  if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <PageContainer title="Cargando...">
-          <LoadingScreen 
-            message="Cargando información del servicio..."
-            fullScreen={false}
-            className="min-h-[400px]"
-          />
-        </PageContainer>
-      </>
-    );
-  }
-
-  if (!serviceData) {
-    return (
-      <>
-        <Navbar />
-        <PageContainer title="Servicio no encontrado">
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">El servicio no se pudo cargar.</p>
-          </div>
-        </PageContainer>
-      </>
-    );
+  // Build grouped categories for select
+  const cats = new Map<string, { label: string; types: any[] }>();
+  for (const t of serviceTypes) {
+    const cat = (t as any).service_categories;
+    const key = cat?.name ?? 'other';
+    const label = cat?.label ?? 'Otros';
+    if (!cats.has(key)) cats.set(key, { label, types: [] });
+    cats.get(key)!.types.push(t);
   }
 
   return (
     <>
       <Navbar />
-      <PageContainer title="Editar Anuncio">
-        <ServiceForm
-          isOpen={isFormOpen}
-          onClose={handleClose}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          initialData={serviceData}
-        />
-      </PageContainer>
+      <div className="mx-auto max-w-lg px-4 pt-[4.5rem] pb-24">
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-3">
+          <button onClick={() => navigate('/services')} className="text-muted-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold">Editar anuncio</h1>
+        </div>
+
+        <div className="space-y-5">
+          {/* Nombre */}
+          <div className="space-y-1.5">
+            <Label>Tu nombre o el del negocio</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-12"
+              placeholder="Ej: Limpiezas El Rey"
+            />
+          </div>
+
+          {/* Tipo de servicio */}
+          <div className="space-y-1.5">
+            <Label>Tipo de servicio</Label>
+            <Select value={serviceTypeId} onValueChange={setServiceTypeId}>
+              <SelectTrigger className="h-12"><SelectValue placeholder="Seleccioná el tipo" /></SelectTrigger>
+              <SelectContent>
+                {Array.from(cats.entries()).map(([key, { label, types }]) => (
+                  <SelectGroup key={key}>
+                    <SelectLabel>{label}</SelectLabel>
+                    {types.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Descripción */}
+          <div className="space-y-1.5">
+            <Label>Descripción</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Contale a tus clientes quién sos y qué ofrecés..."
+              maxLength={300}
+              className="min-h-[100px]"
+            />
+            <p className="text-xs text-muted-foreground text-right">{description.length}/300</p>
+          </div>
+
+          {/* Requerimientos */}
+          <div className="space-y-1.5">
+            <Label>Requerimientos para el servicio <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <Textarea
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="Ej: Acceso a toma de agua, área techada, espacio para parquear..."
+              maxLength={300}
+              className="min-h-[70px]"
+            />
+          </div>
+
+          {/* Antelación */}
+          <div className="space-y-1.5">
+            <Label>Antelación mínima para reservar</Label>
+            <Select value={String(minNoticeHours)} onValueChange={(v) => setMinNoticeHours(Number(v))}>
+              <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NOTICE_OPTIONS.map((o) => <SelectItem key={o.v} value={String(o.v)}>{o.l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Galería */}
+          <div className="space-y-2">
+            <Label>Galería de imágenes <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+
+            {/* Imágenes existentes */}
+            {existingImages.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {existingImages.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(i)}
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Nuevas imágenes */}
+            {newPreviews.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {newPreviews.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover border-2 border-primary/30" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewFile(i)}
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-dashed border-border p-3 hover:border-primary hover:bg-primary/5 transition-colors">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Agregar fotos</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) addFiles(Array.from(e.target.files));
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Enlace al catálogo */}
+          <div className="rounded-xl border border-border p-4">
+            <div className="flex items-start gap-3">
+              <BookOpen className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Catálogo de servicios</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Gestioná los servicios y precios que ofrecés.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/services/catalog/${id}`)}>
+                Editar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Guardar */}
+        <div className="mt-8 flex gap-3">
+          <Button variant="outline" className="flex-1 h-12" onClick={() => navigate('/services')}>
+            Cancelar
+          </Button>
+          <Button className="flex-1 h-12" disabled={saving} onClick={handleSave}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Guardar cambios
+          </Button>
+        </div>
+      </div>
     </>
   );
 };

@@ -10,8 +10,10 @@
 | Supabase | Backend-as-a-Service |
 | PostgreSQL | Base de datos relacional |
 | Deno | Runtime para Edge Functions |
-| OnvoPay API | Procesamiento de pagos (Costa Rica) |
-| Resend | Envío de emails transaccionales |
+| 🆕 WhatsApp Cloud API | Mensajería: OTP, notificaciones, recordatorios (canal único al cliente) |
+| 🆕 Google Maps/Geocoding | Geocoding inverso GPS → cantón |
+| OnvoPay API | Procesamiento de pagos (oculto en v1) |
+| Resend | Envío de emails |
 
 ---
 
@@ -105,6 +107,19 @@ supabase/
 | `onvopay-transaction-lookup` | Buscar transacción por ID |
 | `send-appointment-email` | Enviar email de cita |
 | `send-password-reset` | Enviar email reset password |
+
+### 🆕 Nuevas (concepto v1) — por construir
+
+| Función | Propósito | Trigger |
+|---------|-----------|---------|
+| `whatsapp-send` | Enviar mensaje/plantilla vía WhatsApp Cloud API | Interna |
+| `whatsapp-webhook` | Estados de entrega + mensajes entrantes del cliente | Webhook Meta |
+| `whatsapp-otp-request` | Generar y enviar OTP de 6 dígitos | Login proveedor (O-1) |
+| `whatsapp-otp-verify` | Validar OTP e iniciar sesión | Login proveedor (O-1) |
+| `send-reminders` | Cron: envía `reminder_jobs` vencidos (24h/2h/mensual) | Scheduled |
+| `geocode-reverse` | GPS → cantón (geocoding inverso) | Booking link (BL-2) |
+
+> Ver `skills/SKILL_WHATSAPP_MESSAGING.md` y `skills/SKILL_CANTONES_GEO.md`.
 
 ---
 
@@ -225,6 +240,20 @@ supabase/
 | `system_settings` | Configuración del sistema |
 | `admin_stat_offsets` | Offsets para estadísticas |
 | `price_history` | Historial de precios |
+
+### 🆕 Tablas nuevas (concepto v1)
+
+| Tabla | Descripción | RLS |
+|-------|-------------|-----|
+| `provincias` | 7 provincias de CR (lectura pública) | ✅ |
+| `cantones` | 84 cantones + centroide (lectura pública) | ✅ |
+| `provider_cantones` | Zonas de trabajo del proveedor + días/aceptación | ✅ |
+| `provider_settings` | Buffer, descuento proximidad, toggles recordatorio | ✅ |
+| `whatsapp_messages` | Log de mensajes WhatsApp (in/out) | ✅ |
+| `whatsapp_otp` | Códigos OTP hasheados (login) | ✅ |
+| `reminder_jobs` | Cola de recordatorios programados | ✅ |
+
+> Esquema SQL completo en [CONCEPTO_V1.md](./CONCEPTO_V1.md) §5.
 
 ---
 
@@ -454,6 +483,11 @@ has_role(user_id uuid, role app_role) RETURNS boolean
 | `ONVOPAY_SECRET_KEY` | API key OnvoPay | ✅ |
 | `ONVOPAY_API_BASE` | URL base OnvoPay | ❌ (default) |
 | `RESEND_API_KEY` | API key Resend | ✅ |
+| `ONVOPAY_API_BASE` | URL base OnvoPay | ❌ |
+| 🆕 `WHATSAPP_TOKEN` | Token de WhatsApp Cloud API (**secreto** — regenerar si se filtra) | ✅ |
+| 🆕 `WHATSAPP_PHONE_NUMBER_ID` | Phone Number ID de Meta | ✅ |
+| 🆕 `WHATSAPP_WABA_ID` | WhatsApp Business Account ID | ✅ |
+| 🆕 `GOOGLE_MAPS_API_KEY` | Geocoding inverso GPS → cantón | ✅ |
 
 ---
 

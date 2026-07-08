@@ -6,14 +6,23 @@ import Dashboard from '@/pages/Dashboard';
 import Services from '@/pages/Services';
 import ServiceCreate from '@/pages/ServiceCreate';
 import ServiceEdit from '@/pages/ServiceEdit';
+import ServiceCatalog from '@/pages/ServiceCatalog';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
-import Team from '@/pages/Team';
-import ProviderInvoices from '@/pages/ProviderInvoices';
-import { OnvoPayDebug } from '@/pages/admin/OnvoPayDebug';
+import OnboardingProvider from '@/pages/OnboardingProvider';
+// v1: rutas removidas — Team (equipo es v2), ProviderInvoices y OnvoPayDebug (sin pagos).
 
 const ProviderRoutes = () => {
   return [
+    <Route
+      key="onboarding"
+      path="/onboarding"
+      element={
+        <RoleGuard allowedRole="provider">
+          <OnboardingProvider />
+        </RoleGuard>
+      }
+    />,
     <Route
       key="dashboard"
       path="/dashboard"
@@ -51,6 +60,15 @@ const ProviderRoutes = () => {
       }
     />,
     <Route
+      key="services-catalog"
+      path="/services/catalog/:id"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ServiceCatalog />
+        </RoleGuard>
+      }
+    />,
+    <Route
       key="calendar"
       path="/calendar"
       element={
@@ -65,33 +83,6 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <Achievements />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="team"
-      path="/team"
-      element={
-        <RoleGuard allowedRole="provider">
-          <Team />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="provider-invoices"
-      path="/provider/invoices"
-      element={
-        <RoleGuard allowedRole="provider">
-          <ProviderInvoices />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="onvopay-debug"
-      path="/admin/onvopay-debug"
-      element={
-        <RoleGuard allowedRole="provider">
-          <OnvoPayDebug />
         </RoleGuard>
       }
     />

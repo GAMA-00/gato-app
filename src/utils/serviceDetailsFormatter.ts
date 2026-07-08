@@ -26,54 +26,23 @@ export const formatDuration = (start: string, end: string) => {
 
 // Helper function to get total appointment price (sum of all services)
 export const getTotalAppointmentPrice = (appointment: any) => {
-  // Debug logging for price calculation
-  console.log(`📊 Calculating price for appointment ${appointment.id}:`, {
-    final_price: appointment.final_price,
-    custom_variables_total_price: appointment.custom_variables_total_price,
-    listings_base_price: appointment.listings?.base_price,
-    has_listings: !!appointment.listings
-  });
-
-  // Priority order: final_price -> sum of custom variables -> sum of selected service variants -> base_price
   if (appointment.final_price !== null && appointment.final_price !== undefined) {
-    const finalPrice = parseFloat(appointment.final_price);
-    console.log(`💰 Using final_price: ${finalPrice}`);
-    return finalPrice;
+    return parseFloat(appointment.final_price);
   }
-  
-  // Sum custom variables if they exist
   if (appointment.custom_variables_total_price && appointment.custom_variables_total_price > 0) {
-    const customPrice = parseFloat(appointment.custom_variables_total_price);
-    console.log(`💰 Using custom_variables_total_price: ${customPrice}`);
-    return customPrice;
+    return parseFloat(appointment.custom_variables_total_price);
   }
-  
-  // Sum all custom variable selections
   const customVariants = getServiceVariantsWithQuantity(appointment);
   if (customVariants.length > 0) {
-    const variantsTotal = customVariants.reduce((total, variant) => {
-      return total + (variant.price * variant.quantity);
-    }, 0);
-    console.log(`💰 Using custom variants total: ${variantsTotal}`);
-    return variantsTotal;
+    return customVariants.reduce((total, variant) => total + (variant.price * variant.quantity), 0);
   }
-  
-  // Get selected service variant price or fall back to base price
   const selectedVariant = getSelectedServiceVariant(appointment);
   if (selectedVariant) {
-    const variantPrice = selectedVariant.price * selectedVariant.quantity;
-    console.log(`💰 Using selected variant price: ${variantPrice}`);
-    return variantPrice;
+    return selectedVariant.price * selectedVariant.quantity;
   }
-  
-  // Use listings base_price as final fallback
   if (appointment.listings?.base_price !== null && appointment.listings?.base_price !== undefined) {
-    const basePrice = parseFloat(appointment.listings.base_price);
-    console.log(`💰 Using listings base_price: ${basePrice}`);
-    return basePrice;
+    return parseFloat(appointment.listings.base_price);
   }
-  
-  console.warn(`❌ No price found for appointment ${appointment.id}, returning 0`);
   return 0;
 };
 
@@ -201,14 +170,8 @@ export const formatServiceDetails = (appointment: any) => {
   
   const allServices = getAllServicesBreakdown(appointment);
   
-  let details = `${formattedPrice} • ${formattedDuration}`;
-  
-  // Add all services breakdown separated by bullets
-  if (allServices.length > 0) {
-    details += ` • ${allServices.join(' • ')}`;
-  }
-  
-  console.log(`💴 Service details for appointment ${appointment.id}: "${details}"`);
+  const servicesPart = allServices.length > 0 ? allServices.join(' • ') : null;
+  let details = servicesPart ? `${servicesPart}||${formattedDuration} • ${formattedPrice}` : `${formattedDuration} • ${formattedPrice}`;
   
   return details;
 };
@@ -216,10 +179,13 @@ export const formatServiceDetails = (appointment: any) => {
 // Helper function to get service summary for request cards
 export const getServiceSummary = (appointment: any) => {
   const serviceName = appointment.listings?.title || appointment.service_title || 'Servicio';
-  const details = formatServiceDetails(appointment);
-  
+  const raw = formatServiceDetails(appointment);
+  // formatServiceDetails uses || to split service name from duration·price
+  const [servicesPart, metaPart] = raw.includes('||') ? raw.split('||') : [null, raw];
+
   return {
     serviceName,
-    details
+    details: metaPart ?? raw,
+    servicesPart: servicesPart ?? null,
   };
 };

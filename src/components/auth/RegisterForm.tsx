@@ -3,23 +3,23 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, User, UserPlus, Loader2, AlertCircle, Upload, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, Loader2, AlertCircle, Upload, Eye, EyeOff, MapPin } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PhoneInput } from '@/components/ui/phone-input';
-import { Residencia, UserRole } from '@/lib/types';
+import { UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
+import { CantonSelector } from '@/components/geo/CantonSelector';
+import LocationMap from '@/components/geo/LocationMap';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
-// Esquema simplificado sin confirmación de contraseña
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -27,9 +27,6 @@ export const registerSchema = z.object({
     .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
     .length(12, 'El número debe tener exactamente 8 dígitos'),
   providerResidenciaIds: z.array(z.string()).optional(),
-  residenciaId: z.string().optional(),
-  condominiumId: z.string().optional(),
-  houseNumber: z.string().optional(),
   profileImage: z.any().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   referredBy: z.string().optional()
@@ -38,16 +35,14 @@ export const registerSchema = z.object({
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
 interface RegisterFormProps {
-  residencias: Residencia[];
-  loadingResidencias: boolean;
+  residencias?: any[];
+  loadingResidencias?: boolean;
   onRegisterSuccess?: (userData: any) => void;
   onGoogleSignIn?: () => void;
-  userRole: UserRole; // Ahora recibimos el rol como prop
+  userRole: UserRole;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
-  residencias,
-  loadingResidencias,
   onRegisterSuccess,
   onGoogleSignIn,
   userRole
@@ -56,35 +51,30 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(1); // Para manejar los pasos del formulario
-  const [showPassword, setShowPassword] = useState(false); // Para controlar visibilidad de contraseña
-  
-  // Refinamos el esquema según el rol del usuario
-  const formSchema = z.object({
-    name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-    email: z.string().email('Correo electrónico inválido'),
-    phone: z.string()
-      .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
-      .length(12, 'El número debe tener exactamente 8 dígitos'),
-    providerResidenciaIds: userRole === 'provider' ? z.array(z.string()).min(1, 'Selecciona al menos una residencia') : z.array(z.string()).optional(),
-    residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
-    condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
-    houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
-    profileImage: z.any().optional(),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    referredBy: z.string().optional()
-  });
-  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Location state (only for clients)
+  const [locationMode, setLocationMode] = useState<"gps" | "map" | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [cantonId, setCantonId] = useState<number | null>(null);
+  const [addr, setAddr] = useState({ residencial: "", casa: "", referencias: "" });
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}
+    );
+  };
+
   const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       name: '',
       email: '',
       phone: '',
       providerResidenciaIds: [],
-      residenciaId: '',
-      condominiumId: '',
-      houseNumber: '',
       profileImage: null,
       password: '',
       referredBy: ''
@@ -129,39 +119,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         profileImageToUpload = values.profileImage;
       }
       
-      if (userRole === 'client' && !values.residenciaId) {
-        setRegistrationError('Debes seleccionar una residencia');
-        return;
-      }
-      
-      if (userRole === 'client' && !values.condominiumId) {
-        setRegistrationError('Debes seleccionar un condominio');
-        return;
-      }
-      
-      if (userRole === 'client' && !values.houseNumber) {
-        setRegistrationError('Debes ingresar el número de casa');
-        return;
-      }
-      
-      if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
-        setRegistrationError('Debes seleccionar al menos una residencia');
+      if (userRole === 'client' && !cantonId) {
+        setRegistrationError('Seleccioná tu cantón para continuar');
         return;
       }
 
-      logger.info('Datos de registro:', values);
-      
       const userData = {
         name: values.name,
         phone: values.phone,
         role: userRole,
-        residenciaId: userRole === 'client' ? values.residenciaId : null,
-        condominiumId: userRole === 'client' ? values.condominiumId : null,
-        houseNumber: userRole === 'client' ? values.houseNumber : null,
         providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : [],
-        avatarUrl: '' // Will be updated after user creation
+        avatarUrl: ''
       };
-      
+
       const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
@@ -179,24 +149,42 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         }
       } else if (result.data?.user) {
         logger.info('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
-        logger.info('RegisterForm: User metadata sent:', userData);
-        
-        // Upload avatar after user creation if provided - FIX usando unified system
+
+        // Upload avatar — necesitamos sesión activa; la sesión llega con signUp en local
+        // (auto-confirm) o después de confirmar email en producción.
         if (profileImageToUpload && result.data.user.id) {
-          logger.info('🔵 RegisterForm: Uploading avatar with unified system...');
-          try {
-            const avatarUrl = await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
-            logger.info('✅ RegisterForm: Avatar uploaded successfully:', avatarUrl);
-          } catch (avatarError) {
-            logger.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
-            // No bloqueamos el registro si falla el avatar
+          // Esperar hasta que la sesión esté disponible (máx 5 intentos x 800 ms)
+          let session = result.data.session;
+          for (let i = 0; i < 5 && !session; i++) {
+            await new Promise(r => setTimeout(r, 800));
+            const { data: s } = await supabase.auth.getSession();
+            session = s?.session ?? null;
+          }
+
+          if (session) {
+            try {
+              await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
+              logger.info('✅ RegisterForm: Avatar uploaded successfully');
+            } catch (avatarError) {
+              logger.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
+              // No bloqueamos el registro por el avatar
+            }
+          } else {
+            logger.warn('⚠️ RegisterForm: Sin sesión activa — avatar se puede subir desde Editar Perfil');
           }
         }
-        
+
+        // Save location data for clients
+        if (userRole === 'client' && result.data.user && cantonId) {
+          await (supabase as any).from('users').update({
+            canton_base_id: cantonId,
+            house_number: addr.casa || null,
+            address: addr.residencial || null,
+          }).eq('id', result.data.user.id);
+        }
+
         if (onRegisterSuccess) {
-          onRegisterSuccess({ 
-            user: result.data.user
-          });
+          onRegisterSuccess({ user: result.data.user });
         }
       }
     } catch (error: any) {
@@ -352,12 +340,61 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             {/* Paso 2: Información de ubicación */}
             {currentStep === 2 && (
               <>
-                <ClientResidenceField 
-                  residencias={residencias} 
-                  isSubmitting={isSubmitting} 
-                  loadingResidencias={loadingResidencias} 
-                  form={form} 
-                />
+                <div className="space-y-4">
+                  <h3 className="text-base font-semibold">¿Dónde vivís?</h3>
+                  <p className="text-sm text-muted-foreground -mt-2">Guardamos tu ubicación para que futuras reservas sean más rápidas.</p>
+
+                  {/* GPS / Mapa */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setLocationMode("gps"); setCoords(null); useMyLocation(); }}
+                      className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-sm font-medium transition-colors
+                        ${locationMode === "gps" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background text-foreground hover:bg-muted/50"}`}
+                    >
+                      <MapPin className="h-6 w-6" />
+                      <span className="leading-tight text-center">Usar mi ubicación actual</span>
+                      {locationMode === "gps" && coords && <span className="text-xs font-normal">Capturada ✓</span>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLocationMode("map"); setCoords(null); }}
+                      className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-sm font-medium transition-colors
+                        ${locationMode === "map" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background text-foreground hover:bg-muted/50"}`}
+                    >
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m6 3l-5.447-2.724A1 1 0 0115 4.618v10.764a1 1 0 01-.553.894L9 20m6-16v13" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="leading-tight text-center">Seleccionar en el mapa</span>
+                      {locationMode === "map" && coords && <span className="text-xs font-normal">Seleccionada ✓</span>}
+                    </button>
+                  </div>
+
+                  {locationMode === "map" && (
+                    <LocationMap
+                      initialCoords={coords}
+                      onLocationSelect={(c, label) => {
+                        setCoords(c);
+                        setAddr(prev => ({ ...prev, referencias: prev.referencias || label.split(",").slice(0, 3).join(",").trim() }));
+                      }}
+                    />
+                  )}
+
+                  <CantonSelector value={cantonId} onChange={setCantonId} cantonLabel="Tu cantón" />
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-residencial">Residencial / Condominio <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <Input id="reg-residencial" placeholder="Ej: Residencial Los Robles" value={addr.residencial} onChange={(e) => setAddr({ ...addr, residencial: e.target.value })} className="h-12" disabled={isSubmitting} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-casa">Número de casa / apartamento <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <Input id="reg-casa" value={addr.casa} onChange={(e) => setAddr({ ...addr, casa: e.target.value })} className="h-12" disabled={isSubmitting} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-ref">Referencias <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <Input id="reg-ref" placeholder="100m norte del super, casa color beige" value={addr.referencias} onChange={(e) => setAddr({ ...addr, referencias: e.target.value })} className="h-12" disabled={isSubmitting} />
+                  </div>
+                </div>
 
                 <FormField
                   control={form.control}
@@ -543,13 +580,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               )}
             />
 
-            <ProviderResidencesField 
-              residencias={residencias} 
-              isSubmitting={isSubmitting} 
-              loadingResidencias={loadingResidencias} 
-              form={form} 
-            />
-            
             {/* Profile Image Field for Providers */}
             <FormField
               control={form.control}

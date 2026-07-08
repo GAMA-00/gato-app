@@ -12,7 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Profile from '@/pages/Profile';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-import CompleteProfile from '@/pages/CompleteProfile';
+import PublicBooking from '@/pages/PublicBooking';
 
 const PublicRoutes = () => {
   return [
@@ -33,8 +33,11 @@ const PublicRoutes = () => {
         <ProtectedRoute allowedRoles={['client', 'provider']}>
           <Profile />
         </ProtectedRoute>
-      } 
-    />
+      }
+    />,
+    // Booking link público: gato.app/{slug}. Va de último; en React Router v6 las rutas
+    // estáticas (/login, /dashboard, ...) ganan por especificidad sobre este :slug.
+    <Route key="booking-link" path="/:slug" element={<PublicBooking />} />
   ];
 };
 

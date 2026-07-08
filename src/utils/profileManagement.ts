@@ -52,22 +52,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       return null;
     }
     
-    // If user has residencia_id, fetch the building name
-    let buildingName = '';
-    
-    if (data.residencia_id) {
-      console.log('=== Fetching Residencia Data ===');
-      const { data: residenciaData } = await supabase
-        .from('residencias')
-        .select('name')
-        .eq('id', data.residencia_id)
-        .single();
-        
-      if (residenciaData) {
-        buildingName = residenciaData.name || '';
-        console.log('Building name fetched:', buildingName);
-      }
-    }
+    // v1: sin residencias (se usa cantón). Sin nombre de edificio.
+    const buildingName = '';
     
     const finalAvatarUrl = data.avatar_url || '';
     console.log('=== Final Avatar URL ===', finalAvatarUrl);

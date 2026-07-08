@@ -177,21 +177,10 @@ export const useCalendarAppointments = (currentDate: Date) => {
       let usersMap: Record<string, any> = {};
       if (clientIds.length > 0) {
         try {
+          // v1: users sin residencias/condominios (se usa cantón).
           const { data: users, error: usersError } = await supabase
             .from('users')
-            .select(`
-              id,
-              name,
-              phone,
-              email,
-              condominium_name,
-              condominium_text,
-              house_number,
-              residencias (
-                id,
-                name
-              )
-            `)
+            .select(`id, name, phone, email, house_number`)
             .in('id', clientIds);
 
           if (!usersError && users) {
@@ -200,10 +189,10 @@ export const useCalendarAppointments = (currentDate: Date) => {
                 name: user.name || '',
                 phone: user.phone || '',
                 email: user.email || '',
-                condominium_name: user.condominium_name,
-                condominium_text: user.condominium_text,
+                condominium_name: null,
+                condominium_text: null,
                 house_number: user.house_number,
-                residencias: user.residencias
+                residencias: null
               };
               return acc;
             }, {} as Record<string, any>);

@@ -1,165 +1,73 @@
 # 📖 Glosario - Gato App
 
-> **Última actualización:** Febrero 2026  
-> **Versión:** 2.0 DOE
+> Términos marcados 🆕 son del nuevo concepto v1 (ver `CONCEPTO_V1.md`).
 
-## 🏢 Términos de Negocio
-
-| Término | Definición |
-|---------|------------|
-| **Appointment** | Una cita/reserva entre un cliente y proveedor para un servicio específico |
-| **Booking** | Sinónimo de Appointment (usado principalmente en UI de cliente) |
-| **Client** | Usuario que reserva y paga por servicios a domicilio |
-| **Provider** | Usuario profesional que ofrece servicios a domicilio |
-| **Admin** | Administrador de la plataforma con acceso total |
-| **Listing** | Un servicio publicado por un proveedor, con precio, duración y disponibilidad |
-| **Service** | Tipo de trabajo ofrecido (limpieza, jardinería, etc.) |
-| **Residencia** | Comunidad residencial, condominio o edificio donde viven clientes |
-| **Condominium** | Subdivisión dentro de una residencia (torre, sección, bloque) |
-| **Slot** | Espacio de tiempo disponible para reservar (ej: 9:00-9:30) |
-| **Team Member** | Auxiliar que trabaja con un proveedor |
-
----
-
-## 📅 Estados de Appointment
-
-| Estado | Código | Descripción | Siguiente Estado |
-|--------|--------|-------------|------------------|
-| Pendiente | `pending` | Esperando que proveedor acepte | confirmed/rejected |
-| Confirmada | `confirmed` | Proveedor aceptó, esperando servicio | completed/cancelled |
-| Completada | `completed` | Servicio terminado exitosamente | - (final) |
-| Cancelada | `cancelled` | Cancelado por cliente o proveedor | - (final) |
-| Rechazada | `rejected` | Rechazado por proveedor | - (final) |
-| Reagendada | `rescheduled` | Movida a otra fecha/hora | pending |
-
-### Flujo de Estados
-
-```
-Cliente reserva → pending → Provider acepta → confirmed → Servicio termina → completed
-                    │                             │
-                    ▼                             ▼
-                rejected                      cancelled
-                    │                             │
-                    └─────── (estados finales) ───┘
-```
-
----
-
-## 💳 Estados de Pago
-
-| Estado | Código | Descripción |
-|--------|--------|-------------|
-| Pendiente | `pending` | Pago iniciado, esperando procesamiento |
-| Pendiente Autorización | `pending_authorization` | Esperando verificación 3DS |
-| Autorizado | `authorized` | Autorizado, fondos retenidos, no capturado |
-| Capturado | `captured` | Dinero cobrado exitosamente |
-| Fallido | `failed` | Error en procesamiento |
-| Cancelado | `cancelled` | Cancelado antes de capturar |
-| Reembolsado | `refunded` | Dinero devuelto al cliente |
-
-### Tipos de Pago
-
-| Tipo | Descripción |
-|------|-------------|
-| **Pre-pago** | Cliente paga al reservar, proveedor acepta para capturar |
-| **Post-pago** | Cliente reserva sin pagar, se cobra al completar servicio |
-| **Recurrente** | Cobros automáticos periódicos (semanal, mensual) |
-
----
-
-## 🔄 Términos de Recurrencia
+## Términos de Negocio
 
 | Término | Definición |
 |---------|------------|
-| **Recurring Rule** | Regla que define patrón de repetición (día, hora, frecuencia) |
-| **Recurring Instance** | Una ocurrencia específica de una regla recurrente |
-| **Loop** | Ciclo de cobro automático en OnvoPay |
-| **Subscription** | Registro de suscripción de pago recurrente |
-| **Exception** | Modificación a una instancia (saltar, reagendar) |
+| **Appointment** | Una cita/reserva entre un cliente y proveedor |
+| **Booking** | Sinónimo de Appointment (usado en UI de cliente) |
+| **Client** | Usuario que reserva servicios |
+| **Provider** | Usuario que ofrece servicios |
+| **Listing** | Un servicio publicado por un proveedor |
+| **Residencia** | Comunidad/edificio donde viven clientes (modelo legacy, coexiste) |
+| **Condominium** | Subdivisión dentro de una residencia |
+| **Slot** | Espacio de tiempo disponible para reservar (30 min) |
+| **Post-Payment** | Servicio que se paga después de completar |
+| **Recurring** | Cita que se repite (semanal, mensual, etc.) |
+| 🆕 **Provincia** | Una de las 7 provincias de Costa Rica |
+| 🆕 **Cantón** | Una de las 84 unidades geográficas de CR; base de ubicación y rutas |
+| 🆕 **Centroide** | Centro geográfico de un cantón; punto para calcular distancias |
+| 🆕 **Cantón base** | Cantón de residencia del proveedor (nunca su dirección exacta) |
+| 🆕 **Zona de trabajo** | Cantones donde el proveedor acepta solicitudes (`provider_cantones`) |
+| 🆕 **Booking Link** | URL pública `gato.app/{slug}` para reservar sin login |
+| 🆕 **Slug** | Identificador del proveedor en su booking link |
+| 🆕 **OTP** | Código de 6 dígitos por WhatsApp para login sin contraseña (proveedor) |
+| 🆕 **Buffer de traslado** | Slot extra (default 30 min) bloqueado tras cada cita |
+| 🆕 **Slot recomendado (⭐)** | Slot contiguo a una cita en el mismo cantón (ruta eficiente) |
+| 🆕 **Descuento por proximidad** | Descuento % automático en slots recomendados |
+| 🆕 **Cliente invitado (guest)** | Cliente que reserva por el booking link sin cuenta |
 
-### Tipos de Recurrencia
+## Estados de Appointment
 
-| Tipo | Código | Descripción |
-|------|--------|-------------|
-| Semanal | `weekly` | Mismo día cada semana |
-| Bisemanal | `biweekly` | Cada dos semanas |
-| Mensual | `monthly` | Mismo día del mes |
+| Estado | Descripción |
+|--------|-------------|
+| `pending` | Esperando que proveedor acepte |
+| `confirmed` | Proveedor aceptó, esperando servicio |
+| `completed` | Servicio terminado |
+| `cancelled` | Cancelado por cliente o proveedor |
+| `rejected` | Rechazado por proveedor |
+| `rescheduled` | Reagendado |
 
----
+## Estados de Pago
 
-## 🎖️ Sistema de Niveles
+| Estado | Descripción |
+|--------|-------------|
+| `pending` | Pago iniciado |
+| `pending_authorization` | Esperando 3DS |
+| `authorized` | Autorizado, no capturado |
+| `captured` | Dinero cobrado |
+| `failed` | Falló |
+| `cancelled` | Cancelado |
+| `refunded` | Reembolsado |
 
-| Nivel | Código | Requisitos |
-|-------|--------|------------|
-| Principiante | `beginner` | 0-49 puntos |
-| Confiable | `trusty` | 50-199 puntos |
-| Recomendado | `recommended` | 200-499 puntos |
-| Experto | `expert` | 500+ puntos |
-
-### Cómo se Ganan Puntos
-
-- Completar servicios
-- Recibir calificaciones positivas
-- Mantener tasa baja de cancelación
-- Tiempo en la plataforma
-
----
-
-## 💰 Términos Financieros
-
-| Término | Definición |
-|---------|------------|
-| **Commission** | Porcentaje que cobra Gato App por transacción |
-| **IVA** | Impuesto al Valor Agregado (Costa Rica) |
-| **Subtotal** | Precio antes de impuestos y comisiones |
-| **Invoice** | Factura generada por servicio completado |
-| **Refund** | Devolución de dinero al cliente |
-| **Payout** | Transferencia de fondos al proveedor |
-
-### Monedas Soportadas
-
-| Código | Nombre | Símbolo |
-|--------|--------|---------|
-| `CRC` | Colón Costarricense | ₡ |
-| `USD` | Dólar Estadounidense | $ |
-
----
-
-## ⚙️ Términos Técnicos
+## Términos Técnicos
 
 | Término | Definición |
 |---------|------------|
-| **Edge Function** | Función serverless ejecutada en Supabase (Deno runtime) |
-| **RLS** | Row Level Security - políticas de acceso a filas en PostgreSQL |
-| **JWT** | JSON Web Token - token de autenticación |
-| **Webhook** | Notificación HTTP automática de eventos externos |
-| **3DS** | 3D Secure - verificación adicional de tarjeta de crédito |
-| **Payment Intent** | Intención de pago en procesador (OnvoPay) |
-| **Slot Generation** | Proceso de crear slots disponibles automáticamente |
-| **Query Invalidation** | Refrescar datos en caché de TanStack Query |
-
-### Servicios Externos
-
-| Servicio | Propósito |
-|----------|-----------|
-| **Supabase** | Backend-as-a-Service (DB, Auth, Storage, Functions) |
-| **OnvoPay** | Procesador de pagos para Costa Rica |
-| **Resend** | Envío de emails transaccionales |
-| **Lovable** | Plataforma de desarrollo y hosting |
-
----
-
-## 📱 Términos de UI/UX
-
-| Término | Definición |
-|---------|------------|
-| **Token** | Variable de diseño reutilizable (color, spacing, etc.) |
-| **Component** | Pieza de UI encapsulada y reutilizable |
-| **Variant** | Variación de estilo de un componente (ej: button outline) |
-| **Sheet** | Panel deslizable desde el borde (mobile) |
-| **Toast** | Notificación temporal en esquina de pantalla |
-| **Skeleton** | Placeholder animado mientras carga contenido |
-| **Empty State** | UI mostrada cuando no hay datos |
+| **Edge Function** | Función serverless en Supabase (Deno) |
+| **RLS** | Row Level Security - políticas de acceso a filas |
+| **OnvoPay** | Procesador de pagos de Costa Rica (presente, **oculto en v1**) |
+| **Payment Intent** | Intención de pago en OnvoPay |
+| **Loop** | Ciclo de cobro recurrente en OnvoPay |
+| **3DS** | 3D Secure - verificación de tarjeta |
+| **Webhook** | Notificación HTTP de eventos |
+| 🆕 **WhatsApp Cloud API** | API de Meta para enviar/recibir mensajes (canal único al cliente) |
+| 🆕 **Plantilla (template)** | Mensaje pre-aprobado por Meta para enviar fuera de la ventana de 24h |
+| 🆕 **Ventana de 24h** | Período tras un mensaje del cliente en que se puede responder con texto libre |
+| 🆕 **Geocoding inverso** | Convertir coordenadas GPS en un cantón |
+| 🆕 **Haversine** | Fórmula para distancia entre dos coordenadas (km) |
 
 ---
 

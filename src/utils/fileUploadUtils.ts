@@ -155,7 +155,7 @@ export const updateProviderData = async (
   const updateData: any = {
     about_me: aboutMe || '',
     experience_years: experienceYears || 0,
-    certification_files: certificationFilesUrls?.length ? JSON.stringify(certificationFilesUrls) : null,
+    certification_files: certificationFilesUrls?.length ? certificationFilesUrls : null,
   };
 
   // Add avatar URL if uploaded

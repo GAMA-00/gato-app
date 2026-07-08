@@ -3,8 +3,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NavItem from './NavItem';
-import { Home, Calendar, Users, Star, Settings, Briefcase, FileText } from 'lucide-react';
-import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
+import { Home, Calendar, Users, Star, Settings, Briefcase } from 'lucide-react';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 import { useClientAppointmentsCount } from '@/hooks/useClientAppointmentsCount';
 
@@ -34,12 +33,7 @@ export const navItems: NavItem[] = [
     icon: Calendar,
     roles: ['client']
   },
-  {
-    title: 'Facturas',
-    href: '/client/invoices',
-    icon: FileText,
-    roles: ['client']
-  },
+  // Facturas (cliente): no va en v1 (sin pagos). Removido.
   {
     title: 'Calendario',
     href: '/calendar',
@@ -52,12 +46,7 @@ export const navItems: NavItem[] = [
     icon: Briefcase,
     roles: ['provider']
   },
-  {
-    title: 'Facturas',
-    href: '/provider/invoices',
-    icon: FileText,
-    roles: ['provider']
-  },
+  // Facturas (proveedor): no va en v1 (sin pagos). Removido.
   {
     title: 'Logros',
     href: '/achievements',
@@ -74,8 +63,6 @@ interface NavItemsProps {
 export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchView }) => {
   const location = useLocation();
   const { user } = useAuth();
-  const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
-  const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
   const { count: clientAppointmentsCount } = useClientAppointmentsCount();
 
@@ -92,12 +79,6 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
   const getItemCounter = (href: string) => {
     if (href === '/calendar' && user.role === 'provider') {
       return pendingAppointmentsCount;
-    }
-    if (href === '/provider/invoices' && user.role === 'provider') {
-      return pendingInvoicesCount;
-    }
-    if (href === '/client/invoices' && user.role === 'client') {
-      return clientInvoicesCount;
     }
     if (href === '/client/bookings' && user.role === 'client') {
       return clientAppointmentsCount;

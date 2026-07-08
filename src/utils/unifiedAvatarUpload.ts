@@ -1,80 +1,60 @@
 import { supabase } from '@/integrations/supabase/client';
 
+const db = supabase as any;
+
+/**
+ * Sube un avatar al bucket "avatars" y actualiza users.avatar_url via RPC.
+ * Retorna la URL pública.
+ */
 export const unifiedAvatarUpload = async (file: File, userId: string): Promise<string> => {
-  console.log('🔵 Unified Avatar Upload iniciado:', { 
-    fileName: file.name, 
-    fileType: file.type, 
-    fileSize: file.size,
-    userId 
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Debe ser una imagen (JPG, PNG, WebP)');
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('La imagen debe ser menor a 5 MB');
+  }
+
+  // Verificar sesión activa
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) {
+    throw new Error('Sesión no activa — iniciá sesión para subir una foto');
+  }
+
+  const fileName = `${userId}/avatar.jpg`;
+
+  // Subir File directamente (más confiable que ArrayBuffer)
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error('[unifiedAvatarUpload] Storage upload error:', uploadError);
+    throw new Error(`Error subiendo la imagen: ${uploadError.message}`);
+  }
+
+  console.log('[unifiedAvatarUpload] Upload ok:', uploadData?.path);
+
+  // URL pública con cache-busting
+  const { data: urlData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+  console.log('[unifiedAvatarUpload] Public URL:', avatarUrl);
+
+  // Actualizar DB via RPC SECURITY DEFINER (bypasses RLS)
+  const { error: rpcError } = await db.rpc('update_my_avatar_url', {
+    p_avatar_url: avatarUrl,
   });
 
-  // Validaciones básicas igual que la galería
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Debe ser una imagen');
+  if (rpcError) {
+    console.error('[unifiedAvatarUpload] RPC error:', rpcError);
+    throw new Error(`Error guardando en base de datos: ${rpcError.message}`);
   }
 
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error('Imagen debe ser menor a 5MB');
-  }
-
-  // Convertir a ArrayBuffer como la galería exitosa
-  const arrayBuffer = await file.arrayBuffer();
-  console.log('🔄 ArrayBuffer conversion successful, size:', arrayBuffer.byteLength);
-
-  // Nombre consistente: userId/avatar.jpg
-  const fileName = `${userId}/avatar.jpg`;
-  
-  try {
-    // 1. Borrar avatar anterior si existe
-    const { error: deleteError } = await supabase.storage
-      .from('avatars')
-      .remove([fileName]);
-    
-    if (deleteError) {
-      console.log('⚠️ No se pudo borrar avatar anterior:', deleteError.message);
-    }
-
-    // 2. Subir usando ArrayBuffer como la galería
-    const { data, error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, arrayBuffer, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: 'image/jpeg' // Forzar JPEG como la galería
-      });
-
-    if (uploadError) {
-      console.error('❌ Error upload:', uploadError);
-      throw new Error(`Error subiendo imagen: ${uploadError.message}`);
-    }
-
-    console.log('✅ Upload exitoso:', data);
-
-    // 3. Obtener URL pública con cache busting
-    const { data: urlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    // Cache busting como la galería exitosa
-    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-    console.log('🔗 URL generada con cache busting:', avatarUrl);
-
-    // 4. Actualizar BD
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ avatar_url: avatarUrl })
-      .eq('id', userId);
-
-    if (updateError) {
-      console.error('❌ Error BD:', updateError);
-      throw new Error('Error guardando en base de datos');
-    }
-
-    console.log('✅ Avatar unificado completo exitoso');
-    return avatarUrl;
-    
-  } catch (error) {
-    console.error('💥 Error general en unified upload:', error);
-    throw error;
-  }
+  console.log('[unifiedAvatarUpload] DB updated successfully');
+  return avatarUrl;
 };

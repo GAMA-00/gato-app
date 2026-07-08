@@ -8,13 +8,9 @@ import ClientCategoryDetails from '@/pages/ClientCategoryDetails';
 import ClientResultsView from '@/pages/ClientResultsView';
 import ClientProviderServiceDetail from '@/pages/ClientProviderServiceDetail';
 import ClientBooking from '@/pages/ClientBooking';
-import BookingSummary from '@/pages/BookingSummary';
-import Profile from '@/pages/Profile';
-import ClientInvoices from '@/pages/ClientInvoices';
-import { Checkout } from '@/pages/Checkout';
-import { PaymentStatus } from '@/pages/PaymentStatus';
-import { RecurringBookingConfirmation } from '@/pages/RecurringBookingConfirmation';
 import { BookingConfirmation } from '@/pages/BookingConfirmation';
+// v1: rutas de pagos/facturas removidas (BookingSummary, ClientInvoices, Checkout,
+// PaymentStatus, RecurringBookingConfirmation).
 
 const ClientRoutes = () => {
   return [
@@ -64,56 +60,11 @@ const ClientRoutes = () => {
       }
     />,
     <Route
-      key="client-booking-summary"
-      path="/client/booking-summary"
-      element={
-        <RoleGuard allowedRole="client">
-          <BookingSummary />
-        </RoleGuard>
-      }
-    />,
-    <Route
       key="client-bookings"
       path="/client/bookings"
       element={
         <RoleGuard allowedRole="client">
           <ClientBookings />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="client-invoices"
-      path="/client/invoices"
-      element={
-        <RoleGuard allowedRole="client">
-          <ClientInvoices />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="checkout"
-      path="/checkout"
-      element={
-        <RoleGuard allowedRole="client">
-          <Checkout />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="payment-status"
-      path="/payment-status/:paymentId"
-      element={
-        <RoleGuard allowedRole="client">
-          <PaymentStatus />
-        </RoleGuard>
-      }
-    />,
-    <Route
-      key="recurring-booking-confirmation"
-      path="/recurring-booking-confirmation/:appointmentId"
-      element={
-        <RoleGuard allowedRole="client">
-          <RecurringBookingConfirmation />
         </RoleGuard>
       }
     />,

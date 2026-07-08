@@ -4,15 +4,22 @@ export const homeServiceImages: Record<string, string> = {
   'fumigacion': '/lovable-uploads/8df31e81-5a3b-47e2-b613-90d61075c996.png',
   'fumigación': '/lovable-uploads/8df31e81-5a3b-47e2-b613-90d61075c996.png',
   'planchado': '/lovable-uploads/cb20f484-db92-4a96-9734-e3c343529266.png',
+  'jardinería': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
   'jardin': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
   'jardinero': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
   'mantenimiento': '/lovable-uploads/bd6c577e-1953-44ff-ac4e-f2c9fc5ebef3.png',
   'chef': '/lovable-uploads/56fd025e-2847-4d55-af93-1b8c7391277d.png',
+  'lavado de carros': '/lovable-uploads/9725d7d0-8825-4cdd-96ca-dd76cd913e71.png',
   'lavacar': '/lovable-uploads/9725d7d0-8825-4cdd-96ca-dd76cd913e71.png',
   'lava car': '/lovable-uploads/9725d7d0-8825-4cdd-96ca-dd76cd913e71.png',
+  'flores': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'floristeria': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'florist': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'hidrolavado': '/lovable-uploads/3d7ab3fa-e79d-4691-bde6-6838ac3c8055.png',
+  'limpieza': '/lovable-uploads/8df31e81-5a3b-47e2-b613-90d61075c996.png',
+  'belleza a domicilio': '/lovable-uploads/92c8e6fd-f64c-405f-89b3-d687e1feb69d.png',
+  'fisioterapia': '/lovable-uploads/39418bbd-bfcb-4da3-bd68-1c80242e31d8.png',
+  'masajes': '/lovable-uploads/949df310-202f-4b3f-af36-76e7450a1a11.png',
 };
 
 // Map of custom images for pets category services

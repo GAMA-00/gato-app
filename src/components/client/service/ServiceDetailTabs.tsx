@@ -5,7 +5,6 @@ import ServiceVariantsSelector, { ServiceVariantWithQuantity } from '@/component
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAbout from '@/components/providers/ProviderAbout';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
-import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 import ProviderReviews from '@/components/providers/ProviderReviews';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { ProviderProfile } from '@/lib/types';
@@ -120,11 +119,9 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
         <TabsContent value="about" className="space-y-4 px-4">
           <ProviderAbout provider={transformedProvider} />
           
-          <ProviderCertifications 
+          <ProviderCertifications
             certifications={transformedProvider.certificationFiles}
           />
-          
-          <TeamPhotoSection providerId={providerId} />
         </TabsContent>
 
         {/* Tab 4: Comentarios */}
