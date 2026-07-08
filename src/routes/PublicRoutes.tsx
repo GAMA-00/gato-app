@@ -13,6 +13,7 @@ import Profile from '@/pages/Profile';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicBooking from '@/pages/PublicBooking';
+import CompleteProfile from '@/pages/CompleteProfile';
 
 const PublicRoutes = () => {
   return [
