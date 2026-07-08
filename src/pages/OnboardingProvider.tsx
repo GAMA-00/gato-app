@@ -142,19 +142,23 @@ export default function OnboardingProvider() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      // 1) Perfil de usuario
-      await db.from("users").update({
+      // 1) Perfil de usuario (el cliente Supabase no lanza: verificar error)
+      const { error: userErr } = await db.from("users").update({
         name: name.trim(),
         canton_base_id: cantonBase,
         about_me: aboutMe.trim() || null,
       }).eq("id", user.id);
+      if (userErr) throw userErr;
 
       // 2) Disponibilidad
       await db.from("provider_availability").delete().eq("provider_id", user.id);
       const availRows = DAYS.filter((d) => days[d.idx].on).map((d) => ({
         provider_id: user.id, day_of_week: d.idx, start_time: days[d.idx].start, end_time: days[d.idx].end, is_active: true,
       }));
-      if (availRows.length) await db.from("provider_availability").insert(availRows);
+      if (availRows.length) {
+        const { error: availErr } = await db.from("provider_availability").insert(availRows);
+        if (availErr) throw availErr;
+      }
 
       // 3) Galería — subir archivos
       let galleryUrls: string[] = [];
@@ -172,7 +176,7 @@ export default function OnboardingProvider() {
         duration: s.duration,
       }));
       const first = serviceVariants[0];
-      await db.from("listings").insert({
+      const { error: listingErr } = await db.from("listings").insert({
         provider_id: user.id,
         service_type_id: serviceTypeId,
         title: name.trim(),           // nombre del negocio
@@ -190,14 +194,16 @@ export default function OnboardingProvider() {
           minNoticeHours: minNoticeHours,
         },
       });
+      if (listingErr) throw listingErr;
 
       // 5) Zonas de trabajo
       const zonas = Array.from(new Set([...(cantonBase ? [cantonBase] : []), ...workCantones]));
       if (zonas.length) {
-        await db.from("provider_cantones").upsert(
+        const { error: zonasErr } = await db.from("provider_cantones").upsert(
           zonas.map((c) => ({ provider_id: user.id, canton_id: c, accepts_requests: true })),
           { onConflict: "provider_id,canton_id" },
         );
+        if (zonasErr) throw zonasErr;
       }
 
       const { data: u } = await db.from("users").select("slug").eq("id", user.id).single();
