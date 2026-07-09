@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Navigation2 } from 'lucide-react';
+import { Clock, Navigation2, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AppointmentActions from './AppointmentActions';
@@ -77,6 +77,21 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
             </>
           ) : (
             <p className="text-base text-primary font-bold truncate">{serviceDetails}</p>
+          )}
+
+          {/* Ubicación del cliente (tal cual la escribió al reservar) */}
+          {locationInfo && locationInfo !== 'Sin ubicación' && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
+              <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>{locationInfo}</span>
+            </p>
+          )}
+
+          {/* Notas del cliente */}
+          {appointment.notes && (
+            <p className="text-xs text-foreground/80 mt-1 bg-muted/50 rounded-md px-2 py-1.5">
+              {appointment.notes}
+            </p>
           )}
 
           {/* Bottom row: time (left) + action icons (right) */}

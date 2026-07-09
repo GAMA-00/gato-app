@@ -150,6 +150,14 @@ export default function PublicBooking() {
         },
         p_final_price: effectiveTotal || null,
         p_total_duration: totalDuration,
+        p_selected_services: {
+          cart: cart.map((i) => ({
+            name: i.listing.title,
+            qty: i.qty,
+            price: i.listing.base_price ?? 0,
+            duration: i.listing.duration ?? 60,
+          })),
+        },
       });
       if (rpcError) throw rpcError;
       setStep("done");

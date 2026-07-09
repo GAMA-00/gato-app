@@ -135,6 +135,14 @@ export default function ClientBooking() {
         p_address_detail: userData?.address_detail ?? null,
         p_final_price: effectivePrice ?? null,
         p_total_duration: totalDuration,
+        p_selected_services: {
+          cart: [{
+            name: listing.title,
+            qty: 1,
+            price: listing.base_price ?? 0,
+            duration: listing.duration ?? 60,
+          }],
+        },
       });
 
       if (rpcError) throw rpcError;

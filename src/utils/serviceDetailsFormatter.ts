@@ -83,6 +83,18 @@ export const getServiceVariantsWithQuantity = (appointment: any) => {
   const customVariableSelections = appointment.custom_variable_selections;
   if (!customVariableSelections) return [];
 
+  // Formato nuevo: carrito guardado al reservar ({ cart: [{name, qty, price, duration}] })
+  if (Array.isArray(customVariableSelections.cart)) {
+    return customVariableSelections.cart
+      .filter((i: any) => i?.name && Number(i.qty) > 0)
+      .map((i: any) => ({
+        name: i.name,
+        quantity: Number(i.qty),
+        price: Number(i.price) || 0,
+        duration: Number(i.duration) || appointment.listings?.duration || 60,
+      }));
+  }
+
   const variants = [];
   
   // Process custom variable selections to extract service variants and quantities
