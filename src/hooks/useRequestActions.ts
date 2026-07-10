@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyReservaConfirmada } from '@/utils/whatsappNotify';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { blockRejectedSlots, extractRejectedSlotData } from '@/utils/rejectedSlotUtils';
@@ -38,7 +39,7 @@ export const useRequestActions = () => {
         .from('appointments')
         .update(updatePayload)
         .in('id', request.appointment_ids)
-        .select('id, status, recurrence, client_name, provider_name');
+        .select('id, status, recurrence, client_name, provider_name, client_phone, start_time, end_time, final_price, client_address');
         
       if (error) {
         // Handle specific database errors
@@ -70,6 +71,21 @@ export const useRequestActions = () => {
         }
       } catch (captureError) {
         console.error('Exception capturando pagos prepago:', captureError);
+      }
+
+      // Notificar al cliente por WhatsApp (fire-and-forget; no bloquea la aceptación)
+      const apt = data[0];
+      if (apt?.client_phone && apt.client_phone !== 'Sin teléfono') {
+        notifyReservaConfirmada({
+          clientPhone: apt.client_phone,
+          clientName: apt.client_name ?? 'cliente',
+          providerName: apt.provider_name ?? user.name ?? 'tu proveedor',
+          startIso: apt.start_time,
+          endIso: apt.end_time,
+          price: apt.final_price,
+          address: apt.client_address ?? '',
+          appointmentId: apt.id,
+        });
       }
 
       const isGroup = request.appointment_count > 1;

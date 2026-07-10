@@ -23,6 +23,7 @@ import {
 } from "@/hooks/usePublicProvider";
 import { usePublicSlots, groupSlotsByDay, filterConsecutiveSlots, type PublicSlot } from "@/hooks/usePublicSlots";
 import ZoneSurchargeNotice from "@/components/booking/ZoneSurchargeNotice";
+import { notifySolicitudReserva } from "@/utils/whatsappNotify";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -131,7 +132,7 @@ export default function PublicBooking() {
         ? `Servicios: ${cart.map(i => `${i.listing.title}${i.qty > 1 ? ` x${i.qty}` : ""}`).join(", ")}. `
         : "";
 
-      const { error: rpcError } = await db.rpc("create_external_booking", {
+      const { data: rpcData, error: rpcError } = await db.rpc("create_external_booking", {
         p_provider_id: provider.id,
         p_listing_id: primaryService.listing_id,
         p_start_time: slot.slot_datetime_start,
@@ -160,6 +161,19 @@ export default function PublicBooking() {
         },
       });
       if (rpcError) throw rpcError;
+
+      // Notificación WhatsApp al cliente (fire-and-forget, no bloquea la reserva)
+      const apptId = Array.isArray(rpcData) ? rpcData[0]?.appointment_id : rpcData?.appointment_id;
+      notifySolicitudReserva({
+        clientPhone: datos.whatsapp.trim(),
+        clientName: datos.nombre.trim(),
+        providerName: provider.name ?? "tu proveedor",
+        startIso: slot.slot_datetime_start,
+        endIso: endTime,
+        price: effectiveTotal || null,
+        appointmentId: apptId,
+      });
+
       setStep("done");
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "No se pudo enviar la solicitud");

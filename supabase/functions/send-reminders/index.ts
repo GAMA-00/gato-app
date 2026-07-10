@@ -14,22 +14,29 @@ const corsHeaders = {
 };
 
 // Plantilla + parámetros por tipo de recordatorio (deben coincidir con las aprobadas en Meta)
+// Plantilla activa: recordatorio_cita — {{1}} nombre, {{2}} servicio, {{3}} proveedor, {{4}} fecha, {{5}} hora
 function buildMessage(kind: string, apt: any): { template: string; params: string[] } {
   const tz = 'America/Costa_Rica';
+  const start = new Date(apt.start_time);
   const hora = new Intl.DateTimeFormat('es-CR', {
     timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true,
-  }).format(new Date(apt.start_time));
+  }).format(start);
+  const fecha = new Intl.DateTimeFormat('es-CR', {
+    timeZone: tz, weekday: 'long', day: 'numeric', month: 'long',
+  }).format(start);
   const proveedor = apt.provider_name ?? 'tu proveedor';
+  const nombre = (apt.client_name ?? 'cliente').split(' ')[0];
+  const servicio = apt.custom_variable_selections?.cart?.[0]?.name
+    ?? apt.listings?.title ?? 'tu servicio';
 
   switch (kind) {
     case '24h':
-      return { template: 'recordatorio_24h', params: [hora, proveedor] };
     case '2h':
-      return { template: 'recordatorio_2h', params: [proveedor] };
-    case 'rebook_monthly':
-      return { template: 'recordatorio_agendar', params: [proveedor] };
     default:
-      return { template: 'recordatorio_24h', params: [hora, proveedor] };
+      return { template: 'recordatorio_cita', params: [nombre, servicio, proveedor, fecha, hora] };
+    case 'rebook_monthly':
+      // TODO: crear plantilla 'recordatorio_agendar' en Meta antes de activar este kind
+      return { template: 'recordatorio_agendar', params: [proveedor] };
   }
 }
 
@@ -57,7 +64,7 @@ serve(async (req) => {
       // 2. Datos de la cita (cliente, hora, proveedor)
       const { data: apt } = await supabase
         .from('appointments')
-        .select('id, client_phone, client_name, provider_name, start_time, status')
+        .select('id, client_phone, client_name, provider_name, start_time, status, custom_variable_selections, listings(title)')
         .eq('id', job.appointment_id)
         .single();
 

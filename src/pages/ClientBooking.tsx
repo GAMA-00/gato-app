@@ -15,6 +15,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { toast } from "sonner";
 import { usePublicSlots, groupSlotsByDay, type PublicSlot } from "@/hooks/usePublicSlots";
 import ZoneSurchargeNotice from "@/components/booking/ZoneSurchargeNotice";
+import { notifySolicitudReserva } from "@/utils/whatsappNotify";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -155,6 +156,17 @@ export default function ClientBooking() {
         p_appointment_id: appointmentId,
       });
       if (claimError) throw claimError;
+
+      // Notificación WhatsApp al cliente (fire-and-forget)
+      notifySolicitudReserva({
+        clientPhone,
+        clientName,
+        providerName: listing.users?.name ?? "tu proveedor",
+        startIso: slot.slot_datetime_start,
+        endIso: endTime,
+        price: effectivePrice ?? null,
+        appointmentId,
+      });
 
       // Invalidar cache de reservas para que se muestre el nuevo appointment
       await queryClient.invalidateQueries({ queryKey: ["client-appointments-direct"] });

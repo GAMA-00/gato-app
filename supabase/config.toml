@@ -71,9 +71,6 @@ verify_jwt = false
 [functions.onvopay-capture-on-provider-accept]
 verify_jwt = true
 
-[functions.onvopay-capture-on-invoice-approval]
-verify_jwt = true
-
 [functions.onvopay-process-membership-charge]
 verify_jwt = false
 
