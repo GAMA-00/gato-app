@@ -2,7 +2,11 @@ import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
-import AppointmentList from './AppointmentList';
+import AppointmentQueue from './AppointmentQueue';
+import { useProviderQueue } from '@/hooks/useProviderQueue';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ChevronRight } from 'lucide-react';
 import ProviderStatsCards from './ProviderStatsCards';
 import RequestCard from '@/components/calendar/RequestCard';
 import { useRequestActions } from '@/hooks/useRequestActions';
@@ -29,8 +33,10 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
 }) => {
   const { handleAccept, handleDecline, isLoading: isProcessing } = useRequestActions();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { data: queue = [] } = useProviderQueue();
 
-  const citasCount = activeAppointmentsToday.length + tomorrowsAppointments.length;
+  const citasCount = queue.length;
   const solicitudesCount = pendingRequests.length;
 
   const onAccept = (request: any) => {
@@ -84,19 +90,19 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
         style={{ maxHeight: scrollHeight }}
       >
         <div className="space-y-4 pb-24">
-          <AppointmentList
-            appointments={activeAppointmentsToday}
-            title="Citas de Hoy"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para hoy"
-          />
+          <AppointmentQueue appointments={queue} limit={5} emptyMessage="No hay citas activas" />
 
-          <AppointmentList
-            appointments={tomorrowsAppointments}
-            title="Citas de Mañana"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para mañana"
-          />
+          {queue.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-xl"
+              onClick={() => navigate('/appointments')}
+            >
+              Ver todas mis citas
+              {queue.length > 5 && ` (${queue.length})`}
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          )}
 
           <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
         </div>

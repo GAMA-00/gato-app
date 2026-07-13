@@ -30,6 +30,7 @@ const PendingRequestsCard: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
       queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
       queryClient.invalidateQueries({ queryKey: ['agenda-week'] }),
+      queryClient.invalidateQueries({ queryKey: ['provider-queue'] }),
     ]);
   };
 

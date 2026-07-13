@@ -103,6 +103,7 @@ export const useRequestActions = () => {
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
         queryClient.invalidateQueries({ queryKey: ['agenda-week'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-queue'] }),
       ]);
       
       // Call callback if provided
@@ -194,6 +195,7 @@ export const useRequestActions = () => {
         queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
         queryClient.invalidateQueries({ queryKey: ['provider-time-slots'] }),
         queryClient.invalidateQueries({ queryKey: ['agenda-week'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-queue'] }),
       ]);
       
       if (onDeclineRequest) {

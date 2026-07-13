@@ -10,6 +10,7 @@ import ServiceCatalog from '@/pages/ServiceCatalog';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import OnboardingProvider from '@/pages/OnboardingProvider';
+import ProviderAppointments from '@/pages/ProviderAppointments';
 // v1: rutas removidas — Team (equipo es v2), ProviderInvoices y OnvoPayDebug (sin pagos).
 
 const ProviderRoutes = () => {
@@ -29,6 +30,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <Dashboard />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="provider-appointments"
+      path="/appointments"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ProviderAppointments />
         </RoleGuard>
       }
     />,
