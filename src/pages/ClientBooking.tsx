@@ -245,9 +245,32 @@ export default function ClientBooking() {
                 )}
                 {" · "}{formatDuration(totalDuration)}
               </p>
-              {listing.base_price != null && (
-                <p className="font-semibold text-primary">{colones(listing.base_price)}</p>
-              )}
+              {listing.base_price != null && (() => {
+                const isRec = !!proximity?.recommendedEpochs.has(new Date(slot.slot_datetime_start).getTime());
+                const pct = isRec ? (proximity?.settings.proximity_discount_pct ?? 0) : 0;
+                const eff = isRec && proximity
+                  ? applyProximityDiscount(listing.base_price, proximity.settings)
+                  : listing.base_price;
+                const discountAmount = eff != null ? listing.base_price - eff : 0;
+                return discountAmount > 0 ? (
+                  <div className="space-y-1">
+                    <p className="flex justify-between text-muted-foreground">
+                      <span>{listing.title}</span>
+                      <span>{colones(listing.base_price)}</span>
+                    </p>
+                    <p className="flex justify-between text-emerald-600">
+                      <span>Descuento por horario eficiente (-{pct}%)</span>
+                      <span>-{colones(discountAmount)}</span>
+                    </p>
+                    <p className="flex justify-between font-semibold text-primary border-t pt-1">
+                      <span>Total</span>
+                      <span>{colones(eff)}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-semibold text-primary">{colones(eff)}</p>
+                );
+              })()}
             </div>
 
             <div className="space-y-2">

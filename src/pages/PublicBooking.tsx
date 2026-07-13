@@ -92,6 +92,12 @@ export default function PublicBooking() {
       ? effectivePrimaryPrice : (item.listing.base_price ?? 0);
     return sum + price * item.qty;
   }, 0);
+  const proximityDiscountPct = selectedIsRecommended ? (proximity?.settings.proximity_discount_pct ?? 0) : 0;
+  const proximityDiscountAmount = (() => {
+    if (!selectedIsRecommended || effectivePrimaryPrice == null || primaryService?.base_price == null) return 0;
+    const primaryQty = cart.find((i) => i.listing.listing_id === primaryService.listing_id)?.qty ?? 1;
+    return (primaryService.base_price - effectivePrimaryPrice) * primaryQty;
+  })();
   const transportSurchargePct = slot?.transport_surcharge_pct ?? 0;
   const transportSurchargeAmount = transportSurchargePct > 0 ? Math.round(baseTotal * transportSurchargePct / 100) : 0;
   const effectiveTotal = baseTotal + transportSurchargeAmount;
@@ -285,7 +291,7 @@ export default function PublicBooking() {
             providerId={provider.id}
             listingId={primaryService.listing_id}
             totalDuration={totalDuration}
-            basePrice={effectivePrimaryPrice}
+            basePrice={primaryService?.base_price ?? null}
             minNoticeHours={primaryService.slot_preferences?.minNoticeHours ?? 0}
             cantonId={cantonId}
             proximity={proximity}
@@ -298,7 +304,7 @@ export default function PublicBooking() {
 
         {step === "datos" && (
           <StepShell title="¿Cómo te contactamos?" onBack={() => setStep("datetime")}>
-            <CartSummary cart={cart} slot={slot} totalDuration={totalDuration} effectiveTotal={effectiveTotal} transportSurchargePct={transportSurchargePct} transportSurchargeAmount={transportSurchargeAmount} />
+            <CartSummary cart={cart} slot={slot} totalDuration={totalDuration} effectiveTotal={effectiveTotal} transportSurchargePct={transportSurchargePct} transportSurchargeAmount={transportSurchargeAmount} proximityDiscountPct={proximityDiscountPct} proximityDiscountAmount={proximityDiscountAmount} />
             <div className="space-y-2">
               <Label htmlFor="nombre">Nombre completo</Label>
               <Input id="nombre" value={datos.nombre} onChange={(e) => setDatos({ ...datos, nombre: e.target.value })} className="h-12" />
@@ -328,7 +334,7 @@ export default function PublicBooking() {
             <p className="text-muted-foreground">
               {provider.name} revisará tu solicitud y te confirmará por WhatsApp.
             </p>
-            <CartSummary cart={cart} slot={slot} totalDuration={totalDuration} effectiveTotal={effectiveTotal} transportSurchargePct={transportSurchargePct} transportSurchargeAmount={transportSurchargeAmount} />
+            <CartSummary cart={cart} slot={slot} totalDuration={totalDuration} effectiveTotal={effectiveTotal} transportSurchargePct={transportSurchargePct} transportSurchargeAmount={transportSurchargeAmount} proximityDiscountPct={proximityDiscountPct} proximityDiscountAmount={proximityDiscountAmount} />
           </div>
         )}
       </div>
@@ -810,6 +816,8 @@ function CartSummary({
   effectiveTotal,
   transportSurchargePct = 0,
   transportSurchargeAmount = 0,
+  proximityDiscountPct = 0,
+  proximityDiscountAmount = 0,
 }: {
   cart: CartItem[];
   slot: PublicSlot | null;
@@ -817,6 +825,8 @@ function CartSummary({
   effectiveTotal: number;
   transportSurchargePct?: number;
   transportSurchargeAmount?: number;
+  proximityDiscountPct?: number;
+  proximityDiscountAmount?: number;
 }) {
   if (cart.length === 0 || !slot) return null;
   const baseTotal = effectiveTotal - transportSurchargeAmount;
@@ -833,6 +843,12 @@ function CartSummary({
             )}
           </div>
         ))}
+        {proximityDiscountAmount > 0 && (
+          <div className="flex justify-between text-emerald-600">
+            <span>Descuento por horario eficiente (-{proximityDiscountPct}%)</span>
+            <span>-{colones(proximityDiscountAmount)}</span>
+          </div>
+        )}
         {transportSurchargePct > 0 && (
           <div className="flex justify-between text-amber-700">
             <span>Recargo por transporte (+{transportSurchargePct}%)</span>
