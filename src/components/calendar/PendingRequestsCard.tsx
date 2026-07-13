@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyReservaConfirmada } from '@/utils/whatsappNotify';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
 import { useProviderTeamMembers } from '@/hooks/useTeamMembers';
@@ -37,12 +38,28 @@ const PendingRequestsCard: React.FC = () => {
       const updatePayload: Record<string, any> = { status: 'confirmed' };
       if (teamMemberId) updatePayload.team_member_id = teamMemberId;
 
-      const { error } = await (supabase as any)
+      const { data: updated, error } = await (supabase as any)
         .from('appointments')
         .update(updatePayload)
-        .eq('id', request.id);
+        .eq('id', request.id)
+        .select('id, client_name, client_phone, provider_name, start_time, end_time, final_price, client_address')
+        .single();
 
       if (error) throw error;
+
+      // Notificar al cliente por WhatsApp (fire-and-forget)
+      if (updated?.client_phone && updated.client_phone !== 'Sin teléfono') {
+        notifyReservaConfirmada({
+          clientPhone: updated.client_phone,
+          clientName: updated.client_name ?? 'cliente',
+          providerName: updated.provider_name ?? 'tu proveedor',
+          startIso: updated.start_time,
+          endIso: updated.end_time,
+          price: updated.final_price,
+          address: updated.client_address ?? '',
+          appointmentId: updated.id,
+        });
+      }
 
       toast.success('Solicitud aceptada');
       await invalidateAll();
