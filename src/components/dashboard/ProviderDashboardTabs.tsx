@@ -15,8 +15,6 @@ import { DashboardStats as DashboardStatsType } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProviderDashboardTabsProps {
-  activeAppointmentsToday: any[];
-  tomorrowsAppointments: any[];
   pendingRequests: any[];
   isLoadingRequests?: boolean;
   stats?: DashboardStatsType;
@@ -24,8 +22,6 @@ interface ProviderDashboardTabsProps {
 }
 
 const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
-  activeAppointmentsToday,
-  tomorrowsAppointments,
   pendingRequests,
   isLoadingRequests = false,
   stats,

@@ -1,7 +1,5 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import AppointmentList from '@/components/dashboard/AppointmentList';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -13,8 +11,6 @@ import ProviderDashboardTabs from './ProviderDashboardTabs';
 
 interface DashboardContentProps {
   user: any;
-  activeAppointmentsToday: any[];
-  tomorrowsAppointments: any[];
   stats?: any;
   isLoadingStats?: boolean;
   statsError?: any;
@@ -22,8 +18,6 @@ interface DashboardContentProps {
 
 const DashboardContent: React.FC<DashboardContentProps> = ({
   user,
-  activeAppointmentsToday,
-  tomorrowsAppointments,
   stats,
   isLoadingStats,
   statsError
@@ -41,8 +35,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
 
           {/* Tabs with Citas and Solicitudes */}
           <ProviderDashboardTabs
-            activeAppointmentsToday={activeAppointmentsToday}
-            tomorrowsAppointments={tomorrowsAppointments}
             pendingRequests={groupedRequests}
             isLoadingRequests={isLoadingRequests}
             stats={stats}
@@ -52,26 +44,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       );
     }
     
-    if (user?.role === 'client') {
-      return (
-        <div className="space-y-6">
-          <AppointmentList
-            appointments={activeAppointmentsToday}
-            title="Mis Citas de Hoy"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para hoy"
-          />
-
-          <AppointmentList
-            appointments={tomorrowsAppointments}
-            title="Mis Citas de Mañana"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para mañana"
-          />
-        </div>
-      );
-    }
-    
+    // Los clientes usan sus propias rutas (/client/*); esto solo aplica a proveedores.
     return (
       <Alert>
         <AlertDescription>

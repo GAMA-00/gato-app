@@ -16,8 +16,6 @@ const Dashboard = () => {
     stats,
     isLoadingStats,
     statsError,
-    activeAppointmentsToday,
-    tomorrowsAppointments
   } = useDashboardAppointments();
 
   // Proveedor sin catálogo → mandarlo al onboarding (primera vez)
@@ -57,8 +55,6 @@ const Dashboard = () => {
   return (
     <DashboardContent
       user={user}
-      activeAppointmentsToday={activeAppointmentsToday}
-      tomorrowsAppointments={tomorrowsAppointments}
       stats={stats}
       isLoadingStats={isLoadingStats}
       statsError={statsError}
