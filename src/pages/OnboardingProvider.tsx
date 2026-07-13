@@ -422,21 +422,24 @@ export default function OnboardingProvider() {
           {DAYS.map((d) => {
             const day = days[d.idx];
             return (
-              <div key={d.idx} className="flex items-center gap-2 rounded-lg border p-2">
-                <button
-                  onClick={() => setDays({ ...days, [d.idx]: { ...day, on: !day.on } })}
-                  className={`flex h-7 w-12 items-center rounded-full px-0.5 transition-colors ${day.on ? "bg-primary" : "bg-muted"}`}
-                >
-                  <span className={`h-6 w-6 rounded-full bg-white shadow transition-transform ${day.on ? "translate-x-5" : ""}`} />
-                </button>
-                <span className="w-20 text-sm font-medium">{d.label}</span>
-                {day.on ? (
-                  <div className="flex flex-1 items-center justify-end gap-1">
-                    <Input type="time" value={day.start} onChange={(e) => setDays({ ...days, [d.idx]: { ...day, start: e.target.value } })} className="h-9 w-[6.5rem]" />
-                    <span className="text-muted-foreground">a</span>
-                    <Input type="time" value={day.end} onChange={(e) => setDays({ ...days, [d.idx]: { ...day, end: e.target.value } })} className="h-9 w-[6.5rem]" />
+              <div key={d.idx} className="rounded-lg border p-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setDays({ ...days, [d.idx]: { ...day, on: !day.on } })}
+                    className={`flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition-colors ${day.on ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`h-6 w-6 rounded-full bg-white shadow transition-transform ${day.on ? "translate-x-5" : ""}`} />
+                  </button>
+                  <span className="flex-1 text-sm font-medium">{d.label}</span>
+                  {!day.on && <span className="text-xs text-muted-foreground">Cerrado</span>}
+                </div>
+                {day.on && (
+                  <div className="mt-2 flex items-center gap-1.5 pl-14">
+                    <Input type="time" value={day.start} onChange={(e) => setDays({ ...days, [d.idx]: { ...day, start: e.target.value } })} className="h-9 min-w-0 flex-1" />
+                    <span className="shrink-0 text-sm text-muted-foreground">a</span>
+                    <Input type="time" value={day.end} onChange={(e) => setDays({ ...days, [d.idx]: { ...day, end: e.target.value } })} className="h-9 min-w-0 flex-1" />
                   </div>
-                ) : <span className="flex-1 text-right text-xs text-muted-foreground">Cerrado</span>}
+                )}
               </div>
             );
           })}

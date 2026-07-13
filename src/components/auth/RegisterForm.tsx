@@ -142,6 +142,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         } else if (result.error.message.includes('Email rate limit exceeded')) {
           const suggestedEmail = `${values.email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${values.email.split('@')[1]}`;
           setRegistrationError(`Has alcanzado el límite de intentos de registro con este correo. Por favor utiliza otra dirección de correo (por ejemplo: ${suggestedEmail}) o intenta más tarde.`);
+        } else if (result.error.message.includes('Password should contain')) {
+          setRegistrationError('La contraseña debe incluir al menos una letra minúscula, una mayúscula y un número.');
+        } else if (result.error.message.toLowerCase().includes('password') && result.error.message.includes('6')) {
+          setRegistrationError('La contraseña debe tener al menos 6 caracteres.');
         } else if (result.error.message.includes('Email signups are disabled')) {
           setRegistrationError('El registro por correo está deshabilitado. Por favor, inténtalo más tarde o utiliza el inicio de sesión con Google.');
         } else {
@@ -201,7 +205,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         {registrationError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertDescription className="text-sm">{registrationError}</AlertDescription>
+            <AlertDescription className="text-sm break-words">{registrationError}</AlertDescription>
           </Alert>
         )}
         
