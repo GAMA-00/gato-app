@@ -15,7 +15,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { toast } from "sonner";
 import { usePublicSlots, groupSlotsByDay, type PublicSlot } from "@/hooks/usePublicSlots";
 import ZoneSurchargeNotice from "@/components/booking/ZoneSurchargeNotice";
-import { notifySolicitudReserva } from "@/utils/whatsappNotify";
+import { notifySolicitudReserva, notifyNuevaSolicitudProveedor } from "@/utils/whatsappNotify";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -164,6 +164,16 @@ export default function ClientBooking() {
         providerName: listing.users?.name ?? "tu proveedor",
         startIso: slot.slot_datetime_start,
         endIso: endTime,
+        price: effectivePrice ?? null,
+        appointmentId,
+      });
+      notifyNuevaSolicitudProveedor({
+        providerId,
+        clientName,
+        serviceName: listing.title,
+        startIso: slot.slot_datetime_start,
+        endIso: endTime,
+        address: addrParts.join(", "),
         price: effectivePrice ?? null,
         appointmentId,
       });

@@ -110,3 +110,7 @@ verify_jwt = false
 # (Scheduled Functions / pg_cron). Sin JWT porque lo invoca el scheduler.
 [functions.send-reminders]
 verify_jwt = false
+
+# Cron 6:00 AM CR: agenda diaria del proveedor. Lo invoca el scheduler, sin JWT.
+[functions.send-daily-agenda]
+verify_jwt = false

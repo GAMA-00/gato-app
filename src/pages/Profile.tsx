@@ -5,6 +5,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useProfileSync } from '@/hooks/useProfileSync';
 import { useComprehensiveSync } from '@/hooks/useComprehensiveSync';
 import { Card } from '@/components/ui/card';
+import NotificationSettings from '@/components/profile/NotificationSettings';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import LogoutButton from '@/components/layout/LogoutButton';
@@ -147,6 +148,9 @@ const Profile = () => {
               <p className="text-muted-foreground">{profile.about_me}</p>
             </Card>
           )}
+
+          {/* Provider-specific: Notificaciones WhatsApp */}
+          {user.role === 'provider' && <NotificationSettings />}
 
           {/* Edit Button */}
           <Button 

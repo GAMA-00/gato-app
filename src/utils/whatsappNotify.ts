@@ -77,3 +77,35 @@ export function notifyReservaConfirmada(opts: {
     opts.address || 'la dirección indicada',
   ], opts.appointmentId);
 }
+
+/** Al PROVEEDOR cuando entra una nueva solicitud de reserva. */
+export async function notifyNuevaSolicitudProveedor(opts: {
+  providerId: string;
+  clientName: string;
+  serviceName: string;
+  startIso: string;
+  endIso: string;
+  address: string;
+  price: number | null | undefined;
+  appointmentId?: string;
+}) {
+  try {
+    const { data: prov } = await supabase
+      .from('users')
+      .select('name, phone')
+      .eq('id', opts.providerId)
+      .single();
+    if (!prov?.phone) return;
+    void sendTemplate(prov.phone, 'nueva_solicitud_proveedor', [
+      (prov.name ?? 'proveedor').split(' ')[0],
+      opts.clientName,
+      opts.serviceName,
+      waFecha(opts.startIso),
+      waHorario(opts.startIso, opts.endIso),
+      opts.address || 'sin dirección indicada',
+      waPrecio(opts.price),
+    ], opts.appointmentId);
+  } catch (e) {
+    logger.error('notifyNuevaSolicitudProveedor exception', e);
+  }
+}

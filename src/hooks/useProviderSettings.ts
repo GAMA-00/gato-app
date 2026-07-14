@@ -18,6 +18,8 @@ export interface ProviderSettings {
   show_recommended_slots: boolean;
   reminder_24h_enabled: boolean;
   reminder_2h_enabled: boolean;
+  notify_daily_agenda: boolean;
+  notify_1h_before: boolean;
 }
 
 export const DEFAULT_SETTINGS: Omit<ProviderSettings, "provider_id"> = {
@@ -28,6 +30,8 @@ export const DEFAULT_SETTINGS: Omit<ProviderSettings, "provider_id"> = {
   show_recommended_slots: true,
   reminder_24h_enabled: true,
   reminder_2h_enabled: false,
+  notify_daily_agenda: true,
+  notify_1h_before: true,
 };
 
 /** Lee la config del proveedor; si no existe fila, devuelve los defaults. */
@@ -55,9 +59,17 @@ export function useSaveProviderSettings() {
   return useMutation({
     mutationFn: async (patch: Partial<Omit<ProviderSettings, "provider_id">>) => {
       if (!user?.id) throw new Error("No hay proveedor autenticado");
+      // Merge con la config actual para no pisar otros campos con defaults
+      const { data: current } = await db
+        .from("provider_settings")
+        .select("*")
+        .eq("provider_id", user.id)
+        .maybeSingle();
+      const base = current ?? { ...DEFAULT_SETTINGS };
+      delete (base as any).updated_at;
       const { error } = await db
         .from("provider_settings")
-        .upsert({ provider_id: user.id, ...DEFAULT_SETTINGS, ...patch }, { onConflict: "provider_id" });
+        .upsert({ ...base, provider_id: user.id, ...patch }, { onConflict: "provider_id" });
       if (error) throw error;
     },
     onSuccess: () => {

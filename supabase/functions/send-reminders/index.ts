@@ -30,6 +30,18 @@ function buildMessage(kind: string, apt: any): { template: string; params: strin
     ?? apt.listings?.title ?? 'tu servicio';
 
   switch (kind) {
+    case 'provider_1h':
+      // {{1}} proveedor, {{2}} cliente, {{3}} servicio, {{4}} hora, {{5}} direccion
+      return {
+        template: 'salida_proxima_proveedor',
+        params: [
+          (proveedor).split(' ')[0],
+          apt.client_name ?? 'cliente',
+          servicio,
+          hora,
+          apt.client_address ?? 'la direccion indicada',
+        ],
+      };
     case '24h':
     case '2h':
     default:
@@ -64,12 +76,25 @@ serve(async (req) => {
       // 2. Datos de la cita (cliente, hora, proveedor)
       const { data: apt } = await supabase
         .from('appointments')
-        .select('id, client_phone, client_name, provider_name, start_time, status, custom_variable_selections, listings(title)')
+        .select('id, provider_id, client_phone, client_name, client_address, provider_name, start_time, status, custom_variable_selections, listings(title)')
         .eq('id', job.appointment_id)
         .single();
 
-      // Saltar si la cita ya no aplica o no hay teléfono
-      if (!apt || !apt.client_phone || ['cancelled', 'rejected'].includes(apt.status)) {
+      if (!apt || ['cancelled', 'rejected'].includes(apt.status)) {
+        await supabase.from('reminder_jobs')
+          .update({ status: 'skipped', sent_at: new Date().toISOString() })
+          .eq('id', job.id);
+        continue;
+      }
+
+      // provider_1h va al PROVEEDOR; el resto al cliente
+      let toPhone = apt.client_phone;
+      if (job.kind === 'provider_1h') {
+        const { data: prov } = await supabase
+          .from('users').select('phone').eq('id', apt.provider_id).single();
+        toPhone = prov?.phone ?? null;
+      }
+      if (!toPhone || toPhone === 'Sin teléfono') {
         await supabase.from('reminder_jobs')
           .update({ status: 'skipped', sent_at: new Date().toISOString() })
           .eq('id', job.id);
@@ -87,7 +112,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          to: apt.client_phone,
+          to: toPhone,
           type: 'template',
           template,
           params,

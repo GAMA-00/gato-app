@@ -23,7 +23,7 @@ import {
 } from "@/hooks/usePublicProvider";
 import { usePublicSlots, groupSlotsByDay, filterConsecutiveSlots, type PublicSlot } from "@/hooks/usePublicSlots";
 import ZoneSurchargeNotice from "@/components/booking/ZoneSurchargeNotice";
-import { notifySolicitudReserva } from "@/utils/whatsappNotify";
+import { notifySolicitudReserva, notifyNuevaSolicitudProveedor } from "@/utils/whatsappNotify";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -176,6 +176,16 @@ export default function PublicBooking() {
         providerName: provider.name ?? "tu proveedor",
         startIso: slot.slot_datetime_start,
         endIso: endTime,
+        price: effectiveTotal || null,
+        appointmentId: apptId,
+      });
+      notifyNuevaSolicitudProveedor({
+        providerId: provider.id,
+        clientName: datos.nombre.trim(),
+        serviceName: cart.map((i) => i.listing.title).join(", "),
+        startIso: slot.slot_datetime_start,
+        endIso: endTime,
+        address: [addr.residencial, addr.casa, addr.referencias].filter(Boolean).join(", "),
         price: effectiveTotal || null,
         appointmentId: apptId,
       });
